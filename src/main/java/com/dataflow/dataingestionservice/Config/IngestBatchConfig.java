@@ -2,7 +2,7 @@ package com.dataflow.dataingestionservice.Config;
 
 import com.dataflow.dataingestionservice.Models.Transaction;
 import com.dataflow.dataingestionservice.Repositories.TransactionRepository;
-
+import com.dataflow.dataingestionservice.Utils.ColumnFormatter;
 import jakarta.annotation.PostConstruct;
 import jakarta.persistence.EntityManagerFactory;
 import org.slf4j.Logger;
@@ -15,30 +15,25 @@ import org.springframework.batch.core.job.builder.JobBuilder;
 import org.springframework.batch.core.repository.JobRepository;
 import org.springframework.batch.core.step.builder.StepBuilder;
 import org.springframework.batch.item.ItemProcessor;
-import org.springframework.batch.item.ItemWriter;
-import org.springframework.batch.item.data.RepositoryItemWriter;
 import org.springframework.batch.item.database.JpaItemWriter;
 import org.springframework.batch.item.file.FlatFileItemReader;
 import org.springframework.batch.item.file.LineMapper;
 import org.springframework.batch.item.file.mapping.BeanWrapperFieldSetMapper;
 import org.springframework.batch.item.file.mapping.DefaultLineMapper;
 import org.springframework.batch.item.file.transform.DelimitedLineTokenizer;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.context.annotation.Scope;
 import org.springframework.core.io.FileSystemResource;
-import org.springframework.core.io.Resource;
-import org.springframework.data.repository.CrudRepository;
 import org.springframework.transaction.PlatformTransactionManager;
 
+import java.beans.PropertyEditor;
 import java.beans.PropertyEditorSupport;
-import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.UUID;
 
 
 @Configuration
@@ -46,7 +41,6 @@ import java.util.Collections;
 public class IngestBatchConfig {
 
    private final TransactionRepository transactionRepository;
-
     private static final Logger logger = LoggerFactory.getLogger(IngestBatchConfig.class);
 
     public IngestBatchConfig(TransactionRepository transactionRepository) {
@@ -79,29 +73,26 @@ public class IngestBatchConfig {
         DelimitedLineTokenizer tokenizer = new DelimitedLineTokenizer();
 
         tokenizer.setDelimiter(",");
-        tokenizer.setNames("userId","transactionDate","category","description","amount","currency","paymentMode"); //dupa pozitie nu dupa nume
+        tokenizer.setNames("userId","transactionDate","category","description","amount","currency","paymentMode");
         tokenizer.setStrict(false);
 
         BeanWrapperFieldSetMapper<Transaction> mapper = new BeanWrapperFieldSetMapper<>();
         mapper.setTargetType(Transaction.class);
 
-        mapper.setCustomEditors(Collections.singletonMap(
-                LocalDateTime.class, new PropertyEditorSupport() {
-                    @Override
-                    public void setAsText(String text) {
-                        setValue(LocalDateTime.parse(text));
-                    }
-                })
-        );
-
-        mapper.setCustomEditors(Collections.singletonMap(
-                BigDecimal.class, new PropertyEditorSupport() {
-                    @Override
-                    public void setAsText(String text) {
-                        setValue(new BigDecimal(text));
-                    }
-                })
-        );
+        Map<Class<?>, PropertyEditor> customEditors = new HashMap<>();
+        customEditors.put(LocalDateTime.class, new PropertyEditorSupport() {
+            @Override
+            public void setAsText(String text) {
+                setValue(ColumnFormatter.convertISOtoLocalDateTime(text));
+            }
+        });
+        customEditors.put(UUID.class, new PropertyEditorSupport() {
+            @Override
+            public void setAsText(String text) {
+                setValue(ColumnFormatter.convertStringToUUID(text));
+            }
+        });
+        mapper.setCustomEditors(customEditors);
 
         lineMapper.setLineTokenizer(tokenizer);
         lineMapper.setFieldSetMapper(mapper);
@@ -123,13 +114,11 @@ public class IngestBatchConfig {
     }
 
     @Bean
-    public ItemWriter<Transaction> itemWriter() {
-        logger.info("TransactionRepository injected successfully again: {}", transactionRepository.getClass().getName());
-
-        RepositoryItemWriter<Transaction> itemWriter = new RepositoryItemWriter<>();
-        itemWriter.setRepository(transactionRepository);
-        itemWriter.setMethodName("save");
-        return itemWriter;
+    public JpaItemWriter<Transaction> jpaItemWriter(EntityManagerFactory entityManagerFactory){
+        JpaItemWriter<Transaction> writer = new JpaItemWriter<>();
+        writer.setEntityManagerFactory(entityManagerFactory);
+        writer.setUsePersist(false);
+        return writer;
     }
 
     @Bean
@@ -137,7 +126,7 @@ public class IngestBatchConfig {
                            PlatformTransactionManager transactionManager,
                            FlatFileItemReader<Transaction> itemReader,
                            ItemProcessor<Transaction, Transaction> itemProcessor,
-                           ItemWriter<Transaction> itemWriter) {
+                           JpaItemWriter<Transaction> itemWriter) {
 
         return new StepBuilder("insertStep", jobRepository)
                 .<Transaction, Transaction>chunk(50, transactionManager)
