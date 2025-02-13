@@ -14,7 +14,7 @@ import java.util.UUID;
 @ToString
 public class Transaction {
     @Id
-    @GeneratedValue(strategy = GenerationType.AUTO)
+    @GeneratedValue(strategy = GenerationType.SEQUENCE)
     private Long id;
 
     @Column(name = "user_id" ,nullable = false)

@@ -12,13 +12,11 @@ import org.springframework.boot.autoconfigure.batch.BatchProperties;
 import org.springframework.core.io.InputStreamResource;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.File;
+import java.util.Objects;
 
 @RestController
 @RequestMapping("/api")
@@ -35,7 +33,7 @@ public class TransactionController {
 
 
     @PostMapping("/transaction/upload")
-    public ResponseEntity<String> uploadFile(@RequestParam("file") MultipartFile file) {
+    public ResponseEntity<String> uploadFile(@RequestParam("file") MultipartFile file, @RequestParam(value = "formatDateTime",required = false) String formatDateTime) {
         try {
             // Create a temporary file; you can also specify a directory if needed
             File tempFile = File.createTempFile("upload-", ".csv");
@@ -45,7 +43,7 @@ public class TransactionController {
             // Build job parameters; adding a timestamp ensures uniqueness for each job execution
             JobParameters jobParameters = new JobParametersBuilder()
                     .addString("filePath", tempFile.getAbsolutePath())
-                    .addLong("timestamp", System.currentTimeMillis())
+                    .addString("formatDateTime", Objects.requireNonNullElse(formatDateTime,""))
                     .toJobParameters();
 
             // Launch the job with the job parameters

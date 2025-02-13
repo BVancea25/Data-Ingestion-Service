@@ -5,6 +5,7 @@ import com.dataflow.dataingestionservice.Repositories.TransactionRepository;
 import com.dataflow.dataingestionservice.Utils.ColumnFormatter;
 import jakarta.annotation.PostConstruct;
 import jakarta.persistence.EntityManagerFactory;
+import org.apache.kafka.common.protocol.types.Field;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.batch.core.Job;
@@ -59,16 +60,19 @@ public class IngestBatchConfig {
 
     @Bean
     @StepScope
-    public FlatFileItemReader<Transaction> itemReader(@Value("#{jobParameters['filePath']}") String filePath) {
+    public FlatFileItemReader<Transaction> itemReader(
+            @Value("#{jobParameters['filePath']}") String filePath,
+            @Value("#{jobParameters['formatDateTime']}") String formatDateTime
+            ) {
         FlatFileItemReader<Transaction> reader = new FlatFileItemReader<>();
 
         reader.setResource(new FileSystemResource(filePath));
         reader.setLinesToSkip(1);
-        reader.setLineMapper(lineMapper());
+        reader.setLineMapper(lineMapper(formatDateTime));
         return reader;
     }
 
-    private LineMapper<Transaction> lineMapper(){
+    private LineMapper<Transaction> lineMapper(String formatDateTime){
         DefaultLineMapper<Transaction> lineMapper = new DefaultLineMapper<>();
         DelimitedLineTokenizer tokenizer = new DelimitedLineTokenizer();
 
@@ -83,7 +87,7 @@ public class IngestBatchConfig {
         customEditors.put(LocalDateTime.class, new PropertyEditorSupport() {
             @Override
             public void setAsText(String text) {
-                setValue(ColumnFormatter.convertISOtoLocalDateTime(text));
+                setValue(ColumnFormatter.convertToLocalDateTime(text,formatDateTime));
             }
         });
         customEditors.put(UUID.class, new PropertyEditorSupport() {
