@@ -2,6 +2,7 @@ package com.dataflow.dataingestionservice.Models;
 
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.NaturalId;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -11,15 +12,16 @@ import java.util.UUID;
 @Entity
 @AllArgsConstructor
 @NoArgsConstructor
-@ToString
 public class Transaction {
     @Id
-    @GeneratedValue(strategy = GenerationType.SEQUENCE)
-    private Long id;
+    @GeneratedValue(strategy = GenerationType.UUID)
+    private UUID id;
 
+    @NaturalId
     @Column(name = "user_id" ,nullable = false)
     private UUID userId;
 
+    @NaturalId
     @Column(name = "transaction_date", nullable = false)
     private LocalDateTime transactionDate;
 
@@ -41,8 +43,33 @@ public class Transaction {
     @Column(name = "created_at")
     private LocalDateTime createdAt = LocalDateTime.now();
 
+    public String toString() {
+        return "Transaction{" +
+                "userId=" + userId.toString() +
+                ", transactionDate=" + transactionDate.toString() +
+                ", category='" + category + '\'' +
+                ", description='" + description + '\'' +
+                ", amount=" + amount.toString() +
+                ", currency='" + currency + '\'' +
+                ", paymentMode='" + paymentMode + '\'' +
+                '}';
+    }
     public UUID getUserId() {
         return userId;
+    }
+
+    public void setId(UUID id){
+        this.id=id;
+    }
+    public UUID getId(){
+        return id;
+    }
+
+    public String getIdAsString() {
+        return id.toString();
+    }
+    public String getUserIdAsString() {
+        return userId.toString();
     }
 
     public void setUserId(UUID userId) {

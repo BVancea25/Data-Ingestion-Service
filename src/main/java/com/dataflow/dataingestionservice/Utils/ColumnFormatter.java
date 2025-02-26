@@ -1,5 +1,9 @@
 package com.dataflow.dataingestionservice.Utils;
 
+import com.dataflow.dataingestionservice.Config.IngestBatchConfig;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
@@ -8,6 +12,7 @@ import java.util.UUID;
 
 
 public class ColumnFormatter {
+    private static final Logger logger = LoggerFactory.getLogger(IngestBatchConfig.class);
     private static final Map<String, DateTimeFormatter> FORMATTER_MAP = Map.of(
             "ISO", DateTimeFormatter.ISO_LOCAL_DATE_TIME,         // 2025-02-11T03:36:00
             "YYYY-MM-DD HH:mm:ss", DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"), // 2025-02-11 03:36:00
@@ -44,7 +49,6 @@ public class ColumnFormatter {
 
 
     public synchronized static UUID convertStringToUUID(String uuid){
-
         return UUID.fromString(uuid.trim());
     }
 }

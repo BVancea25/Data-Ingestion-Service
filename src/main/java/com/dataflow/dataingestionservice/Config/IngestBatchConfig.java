@@ -4,18 +4,17 @@ import com.dataflow.dataingestionservice.Models.Transaction;
 import com.dataflow.dataingestionservice.Repositories.TransactionRepository;
 import com.dataflow.dataingestionservice.Utils.ColumnFormatter;
 import jakarta.annotation.PostConstruct;
-import jakarta.persistence.EntityManagerFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.batch.core.*;
-import org.springframework.batch.core.configuration.annotation.EnableBatchProcessing;
 import org.springframework.batch.core.configuration.annotation.JobScope;
 import org.springframework.batch.core.configuration.annotation.StepScope;
 import org.springframework.batch.core.job.builder.JobBuilder;
 import org.springframework.batch.core.repository.JobRepository;
 import org.springframework.batch.core.step.builder.StepBuilder;
 import org.springframework.batch.item.ItemProcessor;
-import org.springframework.batch.item.database.JpaItemWriter;
+import org.springframework.batch.item.database.BeanPropertyItemSqlParameterSourceProvider;
+import org.springframework.batch.item.database.JdbcBatchItemWriter;
 import org.springframework.batch.item.file.FlatFileItemReader;
 import org.springframework.batch.item.file.LineMapper;
 import org.springframework.batch.item.file.mapping.BeanWrapperFieldSetMapper;
@@ -31,6 +30,7 @@ import org.springframework.core.task.TaskExecutor;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import org.springframework.transaction.PlatformTransactionManager;
 
+import javax.sql.DataSource;
 import java.beans.PropertyEditor;
 import java.beans.PropertyEditorSupport;
 import java.io.File;
@@ -41,7 +41,6 @@ import java.util.UUID;
 
 
 @Configuration
-@EnableBatchProcessing
 public class IngestBatchConfig {
 
    private final TransactionRepository transactionRepository;
@@ -132,10 +131,19 @@ public class IngestBatchConfig {
     }
 
     @Bean
-    public JpaItemWriter<Transaction> jpaItemWriter(EntityManagerFactory entityManagerFactory){
-        JpaItemWriter<Transaction> writer = new JpaItemWriter<>();
-        writer.setEntityManagerFactory(entityManagerFactory);
-        writer.setUsePersist(false);
+    public JdbcBatchItemWriter<Transaction> jdbcBatchItemWriter(DataSource dataSource){
+        JdbcBatchItemWriter<Transaction> writer = new JdbcBatchItemWriter<>();
+        writer.setDataSource(dataSource);
+        writer.setSql("INSERT INTO transactions (id, user_id, transaction_date, category, description, amount, currency, payment_mode, created_at) " +
+                "VALUES (UNHEX(REPLACE(:idAsString, '-', '')),UNHEX(REPLACE(:userIdAsString, '-', '')), :transactionDate, :category, :description, :amount, :currency, :paymentMode, :createdAt) " +
+                "ON DUPLICATE KEY UPDATE " +
+                "category = VALUES(category), " +
+                "description = VALUES(description), " +
+                "amount = VALUES(amount), " +
+                "currency = VALUES(currency), " +
+                "payment_mode = VALUES(payment_mode), " +
+                "created_at = VALUES(created_at)");
+        writer.setItemSqlParameterSourceProvider(new BeanPropertyItemSqlParameterSourceProvider<>());
         return writer;
     }
 
@@ -144,11 +152,11 @@ public class IngestBatchConfig {
                            PlatformTransactionManager transactionManager,
                            SynchronizedItemStreamReader<Transaction> itemReader,
                            ItemProcessor<Transaction, Transaction> itemProcessor,
-                           JpaItemWriter<Transaction> itemWriter,
+                           JdbcBatchItemWriter<Transaction> itemWriter,
                            @Qualifier("taskExecutorInsertJob") TaskExecutor taskExecutor) {
 
         return new StepBuilder("insertStep", jobRepository)
-                .<Transaction, Transaction>chunk(50, transactionManager)
+                .<Transaction, Transaction>chunk(1, transactionManager)
                 .reader(itemReader)
                 .processor(itemProcessor)
                 .writer(itemWriter)
@@ -175,20 +183,18 @@ public class IngestBatchConfig {
         return new JobExecutionListener() {
             @Override
             public void beforeJob(JobExecution jobExecution) {
-                JobExecutionListener.super.beforeJob(jobExecution);
+
             }
 
             @Override
             public void afterJob(JobExecution jobExecution) {
-                BatchStatus status=jobExecution.getStatus();
-                if(!status.isUnsuccessful()){
                     File file = new File(filePath);
                     if(file.delete()){
                         logger.info("File from "+filePath+" delete.");
                     }else {
                         logger.error("Failed to delete "+filePath);
                     }
-                }
+
 
             }
         };

@@ -14,6 +14,7 @@ import java.util.UUID;
 public class TransactionProcessor implements ItemProcessor<Transaction,Transaction> {
     @Override
     public Transaction process(Transaction item) throws Exception {
+        item.setId(UUID.randomUUID());
         return item;
     }
 }
