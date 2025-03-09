@@ -79,11 +79,13 @@ public class Transaction {
 
     /**
      * The currency in which the transaction was made.
-     * Cannot be null.
      */
-    @Column(name = "currency", nullable = false)
+    @Transient
     private String currency;
 
+    @ManyToOne(targetEntity = Currency.class)
+    @JoinColumn(name = "currency_id")
+    private UUID currencyId;
     /**
      * The payment mode used for the transaction (e.g., "Credit Card", "Cash").
      */
@@ -115,6 +117,15 @@ public class Transaction {
                 '}';
     }
 
+    public UUID getCurrencyId(){
+        return this.currencyId;
+    }
+    public String getCurrencyIdAsString(){
+        return  this.currencyId.toString();
+    }
+    public void setCurrencyId(UUID currencyId){
+        this.currencyId=currencyId;
+    }
     /**
      * Gets the user identifier.
      *

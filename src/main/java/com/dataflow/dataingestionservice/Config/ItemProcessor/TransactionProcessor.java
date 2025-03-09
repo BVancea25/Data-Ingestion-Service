@@ -1,10 +1,17 @@
-package com.dataflow.dataingestionservice.Config;
+package com.dataflow.dataingestionservice.Config.ItemProcessor;
 
+import com.dataflow.dataingestionservice.Models.Currency;
 import com.dataflow.dataingestionservice.Models.Transaction;
+import com.dataflow.dataingestionservice.Repositories.CurrencyRepository;
+import jakarta.annotation.PostConstruct;
 import lombok.AllArgsConstructor;
 import lombok.NoArgsConstructor;
+import org.apache.kafka.common.protocol.types.Field;
 import org.springframework.batch.item.ItemProcessor;
+import org.springframework.context.annotation.Bean;
 
+import java.util.HashMap;
+import java.util.Map;
 import java.util.UUID;
 
 /**
@@ -21,10 +28,15 @@ import java.util.UUID;
  *
  * @see org.springframework.batch.item.ItemProcessor
  */
-@AllArgsConstructor
-@NoArgsConstructor
+
 public class TransactionProcessor implements ItemProcessor<Transaction, Transaction> {
 
+    private final Map<String,UUID> currencyCache = new HashMap<>();
+    private final CurrencyRepository currencyRepository;
+
+    public TransactionProcessor(CurrencyRepository currencyRepository){
+        this.currencyRepository=currencyRepository;
+    }
     /**
      * Processes a {@link Transaction} by assigning it a new random UUID.
      *
@@ -34,7 +46,25 @@ public class TransactionProcessor implements ItemProcessor<Transaction, Transact
      */
     @Override
     public Transaction process(Transaction item) throws Exception {
+        String currencyCode = item.getCurrency();
+        UUID currencyId;
+        currencyId=currencyCache.get(currencyCode);
+
+        if(currencyId == null) {
+            currencyId = currencyRepository.findByCode(currencyCode).getId();
+        }
+        if(currencyId  == null){
+            throw new IllegalStateException("Currency not found for code: " + currencyCode);
+        }
+        item.setCurrencyId(currencyId);
         item.setId(UUID.randomUUID());
         return item;
+    }
+
+    @PostConstruct
+    public void init(){
+        for (Currency currency : currencyRepository.findAll()) {
+            currencyCache.put(currency.getCode(), currency.getId());
+        }
     }
 }

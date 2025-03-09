@@ -1,4 +1,4 @@
-package com.dataflow.dataingestionservice.Config;
+package com.dataflow.dataingestionservice.Utils;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

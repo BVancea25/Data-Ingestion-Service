@@ -1,6 +1,8 @@
 package com.dataflow.dataingestionservice.Config;
 
+import com.dataflow.dataingestionservice.Config.ItemProcessor.TransactionProcessor;
 import com.dataflow.dataingestionservice.Models.Transaction;
+import com.dataflow.dataingestionservice.Repositories.CurrencyRepository;
 import com.dataflow.dataingestionservice.Utils.ColumnFormatter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -24,6 +26,8 @@ import org.springframework.batch.item.file.mapping.DefaultLineMapper;
 import org.springframework.batch.item.file.transform.DelimitedLineTokenizer;
 import org.springframework.batch.item.support.SynchronizedItemStreamReader;
 import org.springframework.batch.item.xml.StaxEventItemReader;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.beans.factory.annotation.Value;
@@ -50,9 +54,12 @@ import java.util.UUID;
  */
 @Configuration
 @EnableBatchProcessing
-public class IngestBatchConfig {
+public class TransactionBatchConfig {
 
-    private static final Logger logger = LoggerFactory.getLogger(IngestBatchConfig.class);
+    private static final Logger logger = LoggerFactory.getLogger(TransactionBatchConfig.class);
+
+    @Autowired
+    private CurrencyRepository currencyRepository;
 
     /**
      * Creates a {@link FlatFileItemReader} for reading transactions from a CSV file.
@@ -210,8 +217,8 @@ public class IngestBatchConfig {
      * @return an {@link ItemProcessor} that processes transactions
      */
     @Bean
-    public ItemProcessor<Transaction, Transaction> processor() {
-        return new TransactionProcessor();
+    public ItemProcessor<Transaction, Transaction> transactionProcessor() {
+        return new TransactionProcessor(currencyRepository);
     }
 
     /**
@@ -223,6 +230,7 @@ public class IngestBatchConfig {
      * @return a configured {@link Job} for inserting transactions
      */
     @Bean
+    @Qualifier("transactionJob")
     public Job insertJob(JobRepository jobRepository, Step insertStep, JobExecutionListener jobExecutionListener) {
         logger.info("🚀 insertJob() is being initialized...");
         return new JobBuilder("insertJob", jobRepository)
@@ -242,13 +250,13 @@ public class IngestBatchConfig {
         JdbcBatchItemWriter<Transaction> writer = new JdbcBatchItemWriter<>();
         writer.setDataSource(dataSource);
         writer.setSql(
-                "INSERT INTO transactions (id, user_id, transaction_date, category, description, amount, currency, payment_mode, created_at) " +
-                        "VALUES (UNHEX(REPLACE(:idAsString, '-', '')),UNHEX(REPLACE(:userIdAsString, '-', '')), :transactionDate, :category, :description, :amount, :currency, :paymentMode, :createdAt) " +
+                "INSERT INTO transactions (id, user_id, transaction_date, category, description, amount, currency_id, payment_mode, created_at) " +
+                        "VALUES (UNHEX(REPLACE(:idAsString, '-', '')),UNHEX(REPLACE(:userIdAsString, '-', '')), :transactionDate, :category, :description, :amount, UNHEX(REPLACE(:currencyIdAsString,'-','')), :paymentMode, :createdAt) " +
                         "ON DUPLICATE KEY UPDATE " +
                         "category = VALUES(category), " +
                         "description = VALUES(description), " +
                         "amount = VALUES(amount), " +
-                        "currency = VALUES(currency), " +
+                        "currency_id = VALUES(currency_id), " +
                         "payment_mode = VALUES(payment_mode), " +
                         "created_at = VALUES(created_at)");
         writer.setItemSqlParameterSourceProvider(new BeanPropertyItemSqlParameterSourceProvider<>());
@@ -265,7 +273,7 @@ public class IngestBatchConfig {
      * @param jobRepository     the {@link JobRepository} for the job
      * @param transactionManager the {@link PlatformTransactionManager} for managing transactions
      * @param itemReader        the thread-safe reader for {@link Transaction} objects
-     * @param itemProcessor     the processor for {@link Transaction} objects
+     * @param transactionProcessor     the processor for {@link Transaction} objects
      * @param itemWriter        the writer for {@link Transaction} objects
      * @return a configured {@link Step} for processing transactions
      */
@@ -273,13 +281,13 @@ public class IngestBatchConfig {
     public Step insertStep(JobRepository jobRepository,
                            PlatformTransactionManager transactionManager,
                            SynchronizedItemStreamReader<Transaction> itemReader,
-                           ItemProcessor<Transaction, Transaction> itemProcessor,
+                           ItemProcessor<Transaction, Transaction> transactionProcessor,
                            JdbcBatchItemWriter<Transaction> itemWriter) {
 
         return new StepBuilder("insertStep", jobRepository)
                 .<Transaction, Transaction>chunk(50, transactionManager)
                 .reader(itemReader)
-                .processor(itemProcessor)
+                .processor(transactionProcessor)
                 .writer(itemWriter)
                 .build();
     }

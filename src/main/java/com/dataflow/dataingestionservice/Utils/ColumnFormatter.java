@@ -1,6 +1,6 @@
 package com.dataflow.dataingestionservice.Utils;
 
-import com.dataflow.dataingestionservice.Config.IngestBatchConfig;
+import com.dataflow.dataingestionservice.Config.TransactionBatchConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -21,7 +21,7 @@ import java.util.UUID;
  */
 public class ColumnFormatter {
 
-    private static final Logger logger = LoggerFactory.getLogger(IngestBatchConfig.class);
+    private static final Logger logger = LoggerFactory.getLogger(TransactionBatchConfig.class);
 
     /**
      * A map of supported date-time formats keyed by a format identifier.
