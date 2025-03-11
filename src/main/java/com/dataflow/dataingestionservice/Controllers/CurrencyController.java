@@ -77,13 +77,13 @@ public class CurrencyController {
         return currencyService.getCurrencies();
     }
 
-    @GetMapping("/currency")
-    public Optional<Currency> getCurrency(@RequestParam("id") UUID uuid){
+    @GetMapping("/currency/id/{id}")
+    public Optional<Currency> getCurrencyWithId(@PathVariable("id") UUID uuid){
         return currencyService.getCurrencyById(uuid);
     }
 
-    @GetMapping
-    public Currency getCurrency(@RequestParam("code") String code){
+    @GetMapping("/currency/code/{code}")
+    public Currency getCurrencyWitchCode(@PathVariable("code") String code){
         return currencyService.getCurrencyByCode(code);
     }
 }
