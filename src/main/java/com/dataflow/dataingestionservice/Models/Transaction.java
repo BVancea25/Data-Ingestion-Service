@@ -81,11 +81,11 @@ public class Transaction {
      * The currency in which the transaction was made.
      */
     @Transient
-    private String currency;
+    private String currencyCode;
 
     @ManyToOne(targetEntity = Currency.class)
     @JoinColumn(name = "currency_id")
-    private UUID currencyId;
+    private Currency currency;
     /**
      * The payment mode used for the transaction (e.g., "Credit Card", "Cash").
      */
@@ -117,15 +117,14 @@ public class Transaction {
                 '}';
     }
 
-    public UUID getCurrencyId(){
-        return this.currencyId;
+    public void setCurrency(Currency currency) {
+        this.currency = currency;
     }
-    public String getCurrencyIdAsString(){
-        return  this.currencyId.toString();
+
+    public Currency getCurrency() {
+        return currency;
     }
-    public void setCurrencyId(UUID currencyId){
-        this.currencyId=currencyId;
-    }
+
     /**
      * Gets the user identifier.
      *
@@ -239,17 +238,17 @@ public class Transaction {
      *
      * @return the currency as a {@link String}
      */
-    public String getCurrency() {
-        return currency;
+    public String getCurrencyCode() {
+        return currencyCode;
     }
 
     /**
      * Sets the currency of the transaction.
      *
-     * @param currency the currency to set
+     * @param currencyCode the currency to set
      */
-    public void setCurrency(String currency) {
-        this.currency = currency;
+    public void setCurrencyCode(String currencyCode) {
+        this.currencyCode = currencyCode;
     }
 
     /**

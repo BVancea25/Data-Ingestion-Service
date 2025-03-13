@@ -24,8 +24,21 @@ public class Currency {
     @Column(nullable = true,name = "name")
     private String name;
 
+    @Override
+    public String toString() {
+        return "Currency{" +
+                "id=" + id.toString() +
+                ", code='" + code + '\'' +
+                ", name='" + name + '\'' +
+                '}';
+    }
+
     public UUID getId() {
         return id;
+    }
+
+    public String getIdAsString(){
+        return id.toString();
     }
 
     public void setId(UUID id) {
@@ -47,4 +60,5 @@ public class Currency {
     public void setName(String name) {
         this.name = name;
     }
+
 }

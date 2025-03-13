@@ -31,7 +31,7 @@ import java.util.UUID;
 
 public class TransactionProcessor implements ItemProcessor<Transaction, Transaction> {
 
-    private final Map<String,UUID> currencyCache = new HashMap<>();
+    private final Map<String, Currency> currencyCache = new HashMap<>();
     private final CurrencyRepository currencyRepository;
 
     public TransactionProcessor(CurrencyRepository currencyRepository){
@@ -46,17 +46,17 @@ public class TransactionProcessor implements ItemProcessor<Transaction, Transact
      */
     @Override
     public Transaction process(Transaction item) throws Exception {
-        String currencyCode = item.getCurrency();
-        UUID currencyId;
-        currencyId=currencyCache.get(currencyCode);
+        String currencyCode = item.getCurrencyCode();
+        Currency currency;
+        currency=currencyCache.get(currencyCode);
 
-        if(currencyId == null) {
-            currencyId = currencyRepository.findByCode(currencyCode).getId();
+        if(currency == null) {
+            currency = currencyRepository.findByCode(currencyCode);
         }
-        if(currencyId  == null){
+        if(currency  == null){
             throw new IllegalStateException("Currency not found for code: " + currencyCode);
         }
-        item.setCurrencyId(currencyId);
+        item.setCurrency(currency);
         item.setId(UUID.randomUUID());
         return item;
     }
@@ -64,7 +64,7 @@ public class TransactionProcessor implements ItemProcessor<Transaction, Transact
     @PostConstruct
     public void init(){
         for (Currency currency : currencyRepository.findAll()) {
-            currencyCache.put(currency.getCode(), currency.getId());
+            currencyCache.put(currency.getCode(), currency);
         }
     }
 }

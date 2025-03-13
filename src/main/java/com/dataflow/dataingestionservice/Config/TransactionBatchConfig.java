@@ -4,6 +4,7 @@ import com.dataflow.dataingestionservice.Config.ItemProcessor.TransactionProcess
 import com.dataflow.dataingestionservice.Models.Transaction;
 import com.dataflow.dataingestionservice.Repositories.CurrencyRepository;
 import com.dataflow.dataingestionservice.Utils.ColumnFormatter;
+import com.dataflow.dataingestionservice.Utils.LoggingItemWriteListener;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.batch.core.*;
@@ -32,6 +33,8 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.FileSystemResource;
+import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
+import org.springframework.jdbc.core.namedparam.SqlParameterSource;
 import org.springframework.oxm.xstream.XStreamMarshaller;
 import org.springframework.transaction.PlatformTransactionManager;
 import javax.sql.DataSource;
@@ -115,7 +118,7 @@ public class TransactionBatchConfig {
         StreamingXlsxItemReader<Transaction> poiItemReader = new StreamingXlsxItemReader<>();
 
         // Define the column names expected in the Excel file
-        String[] columns = new String[] {"userId", "transactionDate", "category", "description", "amount", "currency", "paymentMode"};
+        String[] columns = new String[] {"userId", "transactionDate", "category", "description", "amount", "currencyCode", "paymentMode"};
         StaticColumnNameExtractor columnNameExtractor = new StaticColumnNameExtractor(columns);
         DefaultRowSetFactory rowSetFactory = new DefaultRowSetFactory();
         rowSetFactory.setColumnNameExtractor(columnNameExtractor);
@@ -183,7 +186,7 @@ public class TransactionBatchConfig {
         DelimitedLineTokenizer tokenizer = new DelimitedLineTokenizer();
 
         tokenizer.setDelimiter(",");
-        tokenizer.setNames("userId", "transactionDate", "category", "description", "amount", "currency", "paymentMode");
+        tokenizer.setNames("userId", "transactionDate", "category", "description", "amount", "currencyCode", "paymentMode");
         tokenizer.setStrict(false);
 
         BeanWrapperFieldSetMapper<Transaction> mapper = new BeanWrapperFieldSetMapper<>();
@@ -251,7 +254,7 @@ public class TransactionBatchConfig {
         writer.setDataSource(dataSource);
         writer.setSql(
                 "INSERT INTO transactions (id, user_id, transaction_date, category, description, amount, currency_id, payment_mode, created_at) " +
-                        "VALUES (UNHEX(REPLACE(:idAsString, '-', '')),UNHEX(REPLACE(:userIdAsString, '-', '')), :transactionDate, :category, :description, :amount, UNHEX(REPLACE(:currencyIdAsString,'-','')), :paymentMode, :createdAt) " +
+                        "VALUES (UNHEX(REPLACE(:id, '-', '')),UNHEX(REPLACE(:userId, '-', '')), :transactionDate, :category, :description, :amount, UNHEX(REPLACE(:currencyId, '-', '')), :paymentMode, :createdAt) " +
                         "ON DUPLICATE KEY UPDATE " +
                         "category = VALUES(category), " +
                         "description = VALUES(description), " +
@@ -259,7 +262,23 @@ public class TransactionBatchConfig {
                         "currency_id = VALUES(currency_id), " +
                         "payment_mode = VALUES(payment_mode), " +
                         "created_at = VALUES(created_at)");
-        writer.setItemSqlParameterSourceProvider(new BeanPropertyItemSqlParameterSourceProvider<>());
+        writer.setItemSqlParameterSourceProvider(new BeanPropertyItemSqlParameterSourceProvider<Transaction>(){
+            @Override
+            public SqlParameterSource createSqlParameterSource(Transaction item) {
+                MapSqlParameterSource paramSource = new MapSqlParameterSource();
+                paramSource.addValue("id", item.getIdAsString());
+                paramSource.addValue("userId", item.getUserIdAsString());
+                paramSource.addValue("transactionDate", item.getTransactionDate());
+                paramSource.addValue("category", item.getCategory());
+                paramSource.addValue("description", item.getDescription());
+                paramSource.addValue("amount", item.getAmount());
+                paramSource.addValue("currencyId", item.getCurrency().getIdAsString());
+                paramSource.addValue("paymentMode", item.getPaymentMode());
+                paramSource.addValue("createdAt", item.getCreatedAt());
+                return paramSource;
+            }
+        });
+
         return writer;
     }
 
@@ -289,6 +308,7 @@ public class TransactionBatchConfig {
                 .reader(itemReader)
                 .processor(transactionProcessor)
                 .writer(itemWriter)
+                .listener(new LoggingItemWriteListener<>())
                 .build();
     }
 
