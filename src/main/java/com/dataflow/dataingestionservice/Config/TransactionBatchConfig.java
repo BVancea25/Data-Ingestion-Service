@@ -56,7 +56,6 @@ import java.util.UUID;
  * </p>
  */
 @Configuration
-@EnableBatchProcessing
 public class TransactionBatchConfig {
 
     private static final Logger logger = LoggerFactory.getLogger(TransactionBatchConfig.class);
@@ -94,7 +93,6 @@ public class TransactionBatchConfig {
         aliases.put("transaction", Transaction.class);
         aliases.put("amount", BigDecimal.class);
         aliases.put("currency", String.class);
-        aliases.put("user_id", UUID.class);
         aliases.put("transaction_date", LocalDateTime.class);
         aliases.put("category", String.class);
         aliases.put("description", String.class);
@@ -118,7 +116,7 @@ public class TransactionBatchConfig {
         StreamingXlsxItemReader<Transaction> poiItemReader = new StreamingXlsxItemReader<>();
 
         // Define the column names expected in the Excel file
-        String[] columns = new String[] {"userId", "transactionDate", "category", "description", "amount", "currencyCode", "paymentMode"};
+        String[] columns = new String[] { "transactionDate", "category", "description", "amount", "currencyCode", "paymentMode"};
         StaticColumnNameExtractor columnNameExtractor = new StaticColumnNameExtractor(columns);
         DefaultRowSetFactory rowSetFactory = new DefaultRowSetFactory();
         rowSetFactory.setColumnNameExtractor(columnNameExtractor);
@@ -186,7 +184,7 @@ public class TransactionBatchConfig {
         DelimitedLineTokenizer tokenizer = new DelimitedLineTokenizer();
 
         tokenizer.setDelimiter(",");
-        tokenizer.setNames("userId", "transactionDate", "category", "description", "amount", "currencyCode", "paymentMode");
+        tokenizer.setNames("transactionDate", "category", "description", "amount", "currencyCode", "paymentMode");
         tokenizer.setStrict(false);
 
         BeanWrapperFieldSetMapper<Transaction> mapper = new BeanWrapperFieldSetMapper<>();
@@ -200,12 +198,7 @@ public class TransactionBatchConfig {
                 setValue(ColumnFormatter.convertToLocalDateTime(text, formatDateTime));
             }
         });
-        customEditors.put(UUID.class, new PropertyEditorSupport() {
-            @Override
-            public void setAsText(String text) {
-                setValue(ColumnFormatter.convertStringToUUID(text));
-            }
-        });
+
         mapper.setCustomEditors(customEditors);
 
         lineMapper.setLineTokenizer(tokenizer);
@@ -254,7 +247,7 @@ public class TransactionBatchConfig {
         writer.setDataSource(dataSource);
         writer.setSql(
                 "INSERT INTO transactions (id, user_id, transaction_date, category, description, amount, currency_id, payment_mode, created_at) " +
-                        "VALUES (UNHEX(REPLACE(:id, '-', '')),UNHEX(REPLACE(:userId, '-', '')), :transactionDate, :category, :description, :amount, UNHEX(REPLACE(:currencyId, '-', '')), :paymentMode, :createdAt) " +
+                        "VALUES (:id,:userId, :transactionDate, :category, :description, :amount, :currencyId, :paymentMode, :createdAt) " +
                         "ON DUPLICATE KEY UPDATE " +
                         "category = VALUES(category), " +
                         "description = VALUES(description), " +

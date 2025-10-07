@@ -1,8 +1,11 @@
 package com.dataflow.dataingestionservice.Controllers;
 
 import com.dataflow.dataingestionservice.Config.TransactionBatchConfig;
+import com.dataflow.dataingestionservice.DTO.TransactionDTO;
+import com.dataflow.dataingestionservice.DTO.TransactionFilter;
 import com.dataflow.dataingestionservice.Models.Transaction;
 import com.dataflow.dataingestionservice.Services.TransactionService;
+import com.dataflow.dataingestionservice.Utils.SecurityUtils;
 import org.apache.commons.io.FilenameUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -11,11 +14,17 @@ import org.springframework.batch.core.JobParameters;
 import org.springframework.batch.core.JobParametersBuilder;
 import org.springframework.batch.core.launch.JobLauncher;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import java.io.File;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Objects;
 
@@ -133,5 +142,40 @@ public class TransactionController {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body("Saving transactions failed: " + e.getMessage());
         }
+    }
+
+    @GetMapping("/transactions")
+    public Page<TransactionDTO> getCurrentUserTransactions(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size,
+            @RequestParam(defaultValue = "transactionDate") String sortBy,
+            @RequestParam(defaultValue = "true") boolean ascending,
+            @RequestParam(required = false) String category,
+            @RequestParam(required = false) String currencyCode,
+            @RequestParam(required = false) String paymentMode,
+            @RequestParam(required = false) String description,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate
+
+    ){
+        Sort sort = ascending ? Sort.by(sortBy).ascending() : Sort.by(sortBy).descending();
+        Pageable pageable = PageRequest.of(page,size,sort);
+        System.out.println(paymentMode);
+        TransactionFilter filter = new TransactionFilter();
+        filter.setCategory(category);
+        filter.setCurrencyCode(currencyCode);
+        filter.setPaymentMode(paymentMode);
+        filter.setDescription(description);
+        filter.setStartDate(startDate);
+        filter.setEndDate(endDate);
+
+        String userId = SecurityUtils.getCurrentUserUuid();
+        return transactionService.getCurrentUserTransactions(pageable,filter,userId);
+    }
+
+    @DeleteMapping("/transactions/delete")
+    public ResponseEntity<Void> deleteTransactions(@RequestBody List<String> ids){
+        transactionService.deleteTransactions(ids, SecurityUtils.getCurrentUserUuid());
+        return ResponseEntity.noContent().build();
     }
 }

@@ -3,12 +3,9 @@ package com.dataflow.dataingestionservice.Config.ItemProcessor;
 import com.dataflow.dataingestionservice.Models.Currency;
 import com.dataflow.dataingestionservice.Models.Transaction;
 import com.dataflow.dataingestionservice.Repositories.CurrencyRepository;
+import com.dataflow.dataingestionservice.Utils.SecurityUtils;
 import jakarta.annotation.PostConstruct;
-import lombok.AllArgsConstructor;
-import lombok.NoArgsConstructor;
-import org.apache.kafka.common.protocol.types.Field;
 import org.springframework.batch.item.ItemProcessor;
-import org.springframework.context.annotation.Bean;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -57,7 +54,8 @@ public class TransactionProcessor implements ItemProcessor<Transaction, Transact
             throw new IllegalStateException("Currency not found for code: " + currencyCode);
         }
         item.setCurrency(currency);
-        item.setId(UUID.randomUUID());
+        item.setId(UUID.randomUUID().toString());
+        item.setUserId(SecurityUtils.getCurrentUserUuid());
         return item;
     }
 

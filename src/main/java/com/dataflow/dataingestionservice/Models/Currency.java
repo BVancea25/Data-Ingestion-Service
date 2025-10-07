@@ -16,7 +16,8 @@ import java.util.UUID;
 public class Currency {
 
     @Id
-    private UUID id;
+    @Column(name = "id",length = 36, nullable = false)
+    private String id;
 
     @Column(nullable = false, name = "code",unique = true)
     private String code;
@@ -27,13 +28,13 @@ public class Currency {
     @Override
     public String toString() {
         return "Currency{" +
-                "id=" + id.toString() +
+                "id=" + id +
                 ", code='" + code + '\'' +
                 ", name='" + name + '\'' +
                 '}';
     }
 
-    public UUID getId() {
+    public String getId() {
         return id;
     }
 
@@ -41,7 +42,7 @@ public class Currency {
         return id.toString();
     }
 
-    public void setId(UUID id) {
+    public void setId(String id) {
         this.id = id;
     }
 

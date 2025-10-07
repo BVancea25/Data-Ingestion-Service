@@ -19,7 +19,7 @@ public class CurrencyService {
         return currencyRepository.findAll();
     }
 
-    public Optional<Currency> getCurrencyById(UUID id){
+    public Optional<Currency> getCurrencyById(String id){
         return currencyRepository.findById(id);
     }
 

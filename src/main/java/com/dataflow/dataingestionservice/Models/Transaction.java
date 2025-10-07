@@ -1,5 +1,6 @@
 package com.dataflow.dataingestionservice.Models;
 
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.NaturalId;
@@ -34,7 +35,8 @@ public class Transaction {
      * The unique identifier for the transaction.
      */
     @Id
-    private UUID id;
+    @Column(name = "id", length = 36, nullable = false)
+    private String id;
 
     /**
      * The unique identifier of the user associated with the transaction.
@@ -43,8 +45,8 @@ public class Transaction {
      * </p>
      */
     @NaturalId
-    @Column(name = "user_id", nullable = false)
-    private UUID userId;
+    @Column(name = "user_id", length = 36, nullable = false)
+    private String userId;
 
     /**
      * The date and time when the transaction occurred.
@@ -128,27 +130,27 @@ public class Transaction {
     /**
      * Gets the user identifier.
      *
-     * @return the {@link UUID} representing the user ID
+     * @return the {@link String} representing the user ID
      */
-    public UUID getUserId() {
+    public String getUserId() {
         return userId;
     }
 
     /**
      * Sets the unique identifier for the transaction.
      *
-     * @param id the {@link UUID} to set as the transaction ID
+     * @param id the {@link String} to set as the transaction ID
      */
-    public void setId(UUID id) {
+    public void setId(String id) {
         this.id = id;
     }
 
     /**
      * Gets the unique identifier for the transaction.
      *
-     * @return the {@link UUID} representing the transaction ID
+     * @return the {@link String} representing the transaction ID
      */
-    public UUID getId() {
+    public String getId() {
         return id;
     }
 
@@ -173,9 +175,9 @@ public class Transaction {
     /**
      * Sets the user identifier.
      *
-     * @param userId the {@link UUID} representing the user ID
+     * @param userId the {@link String} representing the user ID
      */
-    public void setUserId(UUID userId) {
+    public void setUserId(String userId) {
         this.userId = userId;
     }
 

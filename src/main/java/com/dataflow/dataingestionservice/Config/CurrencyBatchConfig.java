@@ -35,7 +35,6 @@ import java.util.Map;
 import java.util.UUID;
 
 @Configuration
-@EnableBatchProcessing
 public class CurrencyBatchConfig {
     private static final Logger logger = LoggerFactory.getLogger(TransactionBatchConfig.class);
 

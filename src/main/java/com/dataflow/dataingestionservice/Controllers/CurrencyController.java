@@ -78,7 +78,7 @@ public class CurrencyController {
     }
 
     @GetMapping("/currency/id/{id}")
-    public Optional<Currency> getCurrencyWithId(@PathVariable("id") UUID uuid){
+    public Optional<Currency> getCurrencyWithId(@PathVariable("id") String uuid){
         return currencyService.getCurrencyById(uuid);
     }
 

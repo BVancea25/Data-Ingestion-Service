@@ -28,8 +28,8 @@ public class ExpenseService {
         try{
             for(Expense expense:expenseList){
 
-                expense.setId(UUID.randomUUID());
-                Optional<Currency> optionalCurrency = currencyRepository.findById(UUID.fromString(expense.getCurrency_id()));
+                expense.setId(UUID.randomUUID().toString());
+                Optional<Currency> optionalCurrency = currencyRepository.findById(expense.getCurrencyId());
 
                 if (optionalCurrency.isPresent()) {
                     Currency currency = optionalCurrency.get();

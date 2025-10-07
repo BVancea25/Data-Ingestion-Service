@@ -13,7 +13,7 @@ import java.util.UUID;
 public class CurrencyProcessor implements ItemProcessor<Currency, Currency> {
     @Override
     public Currency process(Currency item) throws Exception {
-        item.setId(UUID.randomUUID());
+        item.setId(UUID.randomUUID().toString());
         return item;
     }
 }

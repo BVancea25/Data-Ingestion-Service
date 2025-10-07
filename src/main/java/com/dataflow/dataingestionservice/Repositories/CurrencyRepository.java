@@ -9,7 +9,7 @@ import java.util.UUID;
 
 
 @Repository
-public interface CurrencyRepository extends JpaRepository<Currency, UUID> {
+public interface CurrencyRepository extends JpaRepository<Currency, String> {
    Currency findByCode(String code);
 
 }

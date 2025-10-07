@@ -19,7 +19,7 @@ import java.util.UUID;
 public class Expense {
 
     @Id
-    private UUID Id;
+    private String Id;
 
     @ManyToOne(targetEntity = Currency.class)
     @JoinColumn(name = "currency_id")
@@ -36,27 +36,24 @@ public class Expense {
     private LocalDate dueDate;
 
     @Column(name = "user_id")
-    private UUID userId;
+    private String userId;
 
     @Column(name = "amount")
     private BigDecimal amount;
 
+    @Getter
     @Transient
     private String currency_id;
 
-    public String getCurrency_id() {
-        return currency_id;
-    }
 
-    public void setCurrency_id(String currency_id) {
-        this.currency_id = currency_id;
+    public String getCurrencyId(){
+        return this.currency_id;
     }
-
-    public UUID getId() {
+    public String getId() {
         return Id;
     }
 
-    public void setId(UUID id) {
+    public void setId(String id) {
         this.Id = id;
     }
 
@@ -93,11 +90,11 @@ public class Expense {
         this.dueDate = dueDate;
     }
 
-    public UUID getUserId() {
+    public String getUserId() {
         return userId;
     }
 
-    public void setUserId(UUID userId) {
+    public void setUserId(String userId) {
         this.userId = userId;
     }
 
