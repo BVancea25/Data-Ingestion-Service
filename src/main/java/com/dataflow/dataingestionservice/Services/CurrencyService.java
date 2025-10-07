@@ -1,5 +1,6 @@
 package com.dataflow.dataingestionservice.Services;
 
+import com.dataflow.dataingestionservice.DTO.CurrencyDTO;
 import com.dataflow.dataingestionservice.Models.Currency;
 import com.dataflow.dataingestionservice.Repositories.CurrencyRepository;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -24,6 +25,13 @@ public class CurrencyService {
     }
 
     public Currency getCurrencyByCode(String code){
-        return currencyRepository.findByCode(code);
+        return currencyRepository.findByCodeContainingIgnoreCase(code);
+    }
+
+    public List<CurrencyDTO> searchCurrencies(String search){
+       return currencyRepository.findByCodeContainingIgnoreCaseOrNameContainingIgnoreCase(search,search)
+                .stream()
+                .map(c -> new CurrencyDTO(c.getCode(),c.getName()))
+                .toList();
     }
 }

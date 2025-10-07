@@ -2,6 +2,7 @@ package com.dataflow.dataingestionservice.Controllers;
 
 
 import com.dataflow.dataingestionservice.Config.TransactionBatchConfig;
+import com.dataflow.dataingestionservice.DTO.CurrencyDTO;
 import com.dataflow.dataingestionservice.Models.Currency;
 import com.dataflow.dataingestionservice.Services.CurrencyService;
 import org.apache.commons.io.FilenameUtils;
@@ -20,6 +21,7 @@ import org.springframework.web.multipart.MultipartFile;
 import java.io.File;
 import java.util.*;
 
+@RequestMapping("/api")
 @RestController
 public class CurrencyController {
     private static final List<String> ALLOWED_EXTENSIONS = List.of("csv");
@@ -85,5 +87,10 @@ public class CurrencyController {
     @GetMapping("/currency/code/{code}")
     public Currency getCurrencyWitchCode(@PathVariable("code") String code){
         return currencyService.getCurrencyByCode(code);
+    }
+
+    @GetMapping("/currencies")
+    public List<CurrencyDTO> searchCurrencies(@RequestParam(defaultValue = "") String search){
+        return currencyService.searchCurrencies(search);
     }
 }

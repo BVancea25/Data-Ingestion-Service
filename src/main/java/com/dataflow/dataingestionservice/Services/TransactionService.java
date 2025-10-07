@@ -36,7 +36,7 @@ public class TransactionService {
         for (Transaction transaction : transactions){
             transaction.setId(UUID.randomUUID().toString());
             transaction.setUserId(SecurityUtils.getCurrentUserUuid());
-            Currency currency = currencyRepository.findByCode(transaction.getCurrencyCode());
+            Currency currency = currencyRepository.findByCodeContainingIgnoreCase(transaction.getCurrencyCode());
 
             if(currency != null){
                 transaction.setCurrency(currency);

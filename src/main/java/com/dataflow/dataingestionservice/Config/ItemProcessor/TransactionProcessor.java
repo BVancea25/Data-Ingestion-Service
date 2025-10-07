@@ -48,7 +48,7 @@ public class TransactionProcessor implements ItemProcessor<Transaction, Transact
         currency=currencyCache.get(currencyCode);
 
         if(currency == null) {
-            currency = currencyRepository.findByCode(currencyCode);
+            currency = currencyRepository.findByCodeContainingIgnoreCase(currencyCode);
         }
         if(currency  == null){
             throw new IllegalStateException("Currency not found for code: " + currencyCode);
