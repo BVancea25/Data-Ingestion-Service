@@ -77,7 +77,7 @@ public class TransactionController {
      * @param formatDateTime an optional date-time format string
      * @return a {@link ResponseEntity} with a success message or an error message describing the issue
      */
-    @PostMapping("/transaction/upload")
+    @PostMapping("/income/upload")
     public ResponseEntity<String> uploadFile(@RequestParam("file") MultipartFile file,
                                              @RequestParam(value = "formatDateTime", required = false) String formatDateTime) {
         // Validate that the file is present and not empty
@@ -128,7 +128,7 @@ public class TransactionController {
      * @param transactions the list of transactions to save
      * @return a {@link ResponseEntity} indicating success or failure
      */
-    @PostMapping("/transaction")
+    @PostMapping("/income")
     public ResponseEntity<String> postTransaction(@RequestBody List<Transaction> transactions) {
         if (transactions == null || transactions.isEmpty()) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
@@ -144,7 +144,7 @@ public class TransactionController {
         }
     }
 
-    @GetMapping("/transactions")
+    @GetMapping("/incomes")
     public Page<TransactionDTO> getCurrentUserTransactions(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size,
@@ -173,9 +173,15 @@ public class TransactionController {
         return transactionService.getCurrentUserTransactions(pageable,filter,userId);
     }
 
-    @DeleteMapping("/transactions/delete")
+    @DeleteMapping("/incomes/delete")
     public ResponseEntity<Void> deleteTransactions(@RequestBody List<String> ids){
         transactionService.deleteTransactions(ids, SecurityUtils.getCurrentUserUuid());
         return ResponseEntity.noContent().build();
+    }
+
+    @PutMapping("/income")
+    public ResponseEntity<String> updateTransaction(@RequestBody TransactionDTO transactionDTO){
+        transactionService.updateTransaction(transactionDTO);
+        return ResponseEntity.ok("Updated transaction");
     }
 }

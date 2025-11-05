@@ -29,6 +29,7 @@ public class SecurityConfig {
         http
                 .authorizeHttpRequests(auth ->auth
                         .requestMatchers("/public/**").permitAll()
+                        .requestMatchers("/bt/callback").permitAll()
                         .anyRequest().authenticated())
                 .oauth2ResourceServer(oauth2 -> oauth2.jwt(Customizer.withDefaults()));
 

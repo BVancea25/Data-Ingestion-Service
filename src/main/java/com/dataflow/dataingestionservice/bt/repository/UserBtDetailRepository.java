@@ -1,0 +1,15 @@
+package com.dataflow.dataingestionservice.bt.repository;
+
+import com.dataflow.dataingestionservice.bt.model.UserBtDetail;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
+import org.springframework.stereotype.Repository;
+
+@Repository
+public interface UserBtDetailRepository extends JpaRepository<UserBtDetail, String> {
+
+    UserBtDetail findTopByUserIdOrderByCreatedAtDesc(String userId);
+
+    UserBtDetail findUserBtDetailByState(String state);
+}

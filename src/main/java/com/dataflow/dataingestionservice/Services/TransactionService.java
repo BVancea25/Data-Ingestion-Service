@@ -1,6 +1,7 @@
 package com.dataflow.dataingestionservice.Services;
 
 import com.dataflow.dataingestionservice.Config.TransactionBatchConfig;
+import com.dataflow.dataingestionservice.DTO.CurrencyDTO;
 import com.dataflow.dataingestionservice.DTO.TransactionDTO;
 import com.dataflow.dataingestionservice.DTO.TransactionFilter;
 import com.dataflow.dataingestionservice.Models.Currency;
@@ -18,7 +19,9 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import javax.swing.text.html.Option;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -71,5 +74,19 @@ public class TransactionService {
     public void deleteTransactions(List<String> ids, String userId){
         if(ids == null || ids.isEmpty()) return;
         transactionRepository.deleteAllByIdAndUserId(ids,userId);
+    }
+
+    public void updateTransaction(TransactionDTO transactionDTO){
+        Optional<Transaction> transaction = transactionRepository.findById(transactionDTO.getId());
+        if(transaction.isPresent()) return;
+        Transaction modifiedTransaction = new Transaction();
+        Currency currency = currencyRepository.findByCodeContainingIgnoreCase(transactionDTO.getCurrencyCode());
+        modifiedTransaction.setCategory(transactionDTO.getCategory());
+        modifiedTransaction.setCurrency(currency);
+        modifiedTransaction.setAmount(transactionDTO.getAmount());
+        modifiedTransaction.setDescription(transactionDTO.getDescription());
+        modifiedTransaction.setPaymentMode(transactionDTO.getPaymentMode());
+        transactionRepository.save(modifiedTransaction);
+
     }
 }
