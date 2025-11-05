@@ -5,8 +5,6 @@ import com.dataflow.dataingestionservice.bt.config.BtApiProperties;
 import com.dataflow.dataingestionservice.bt.model.UserBtDetail;
 import com.dataflow.dataingestionservice.bt.repository.UserBtDetailRepository;
 import com.dataflow.dataingestionservice.bt.util.PkceUtil;
-import org.apache.commons.collections4.MultiValuedMap;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.*;
 import org.springframework.stereotype.Service;
 import org.springframework.util.LinkedMultiValueMap;
