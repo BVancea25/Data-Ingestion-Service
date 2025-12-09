@@ -3,6 +3,9 @@ package com.dataflow.dataingestionservice.bt.model;
 import com.dataflow.dataingestionservice.Models.Currency;
 import jakarta.persistence.*;
 
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+
 @Table(name = "bank_accounts")
 @Entity
 public class BankAccount {
@@ -24,6 +27,28 @@ public class BankAccount {
 
     @Column(name = "name")
     private String name;
+
+    @Column(name = "last_sync_date")
+    private LocalDateTime lastSyncDate;
+
+    @Column(name = "resource_id")
+    private String resourceId;
+
+    public String getResourceId() {
+        return resourceId;
+    }
+
+    public void setResourceId(String resourceId) {
+        this.resourceId = resourceId;
+    }
+
+    public LocalDateTime getLastSyncDate() {
+        return lastSyncDate;
+    }
+
+    public void setLastSyncDate(LocalDateTime lastSyncDate) {
+        this.lastSyncDate = lastSyncDate;
+    }
 
     public Integer getId() {
         return id;

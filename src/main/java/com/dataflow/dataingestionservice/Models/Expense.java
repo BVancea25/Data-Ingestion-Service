@@ -31,9 +31,12 @@ public class Expense {
     @Column(name = "expense_type", nullable = false)
     private String expenseType;
 
-    @Column(name = "due_date")
+    @Column(name = "due_date", nullable = true)
     @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "M/d/yyyy")
     private LocalDate dueDate;
+
+    @Column(name = "bt_transaction_id", nullable = true)
+    private String btTransactionId;
 
     @Column(name = "user_id")
     private String userId;
@@ -45,6 +48,13 @@ public class Expense {
     @Transient
     private String currency_id;
 
+    public String getBtTransactionId() {
+        return btTransactionId;
+    }
+
+    public void setBtTransactionId(String btTransactionId) {
+        this.btTransactionId = btTransactionId;
+    }
 
     public String getCurrencyId(){
         return this.currency_id;

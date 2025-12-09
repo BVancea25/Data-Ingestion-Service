@@ -94,6 +94,10 @@ public class Transaction {
     @Column(name = "payment_mode")
     private String paymentMode;
 
+
+    @Column(name = "bt_transaction_id", nullable = true)
+    private String btTransactionId;
+
     /**
      * The timestamp when the transaction record was created.
      * Defaults to the current time.
@@ -127,6 +131,13 @@ public class Transaction {
         return currency;
     }
 
+    public String getBtTransactionId() {
+        return btTransactionId;
+    }
+
+    public void setBtTransactionId(String btTransactionId) {
+        this.btTransactionId = btTransactionId;
+    }
     /**
      * Gets the user identifier.
      *

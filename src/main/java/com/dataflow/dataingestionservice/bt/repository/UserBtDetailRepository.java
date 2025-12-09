@@ -10,4 +10,6 @@ public interface UserBtDetailRepository extends JpaRepository<UserBtDetail, Stri
     UserBtDetail findTopByUserIdOrderByCreatedAtDesc(String userId);
 
     UserBtDetail findUserBtDetailByState(String state);
+
+    UserBtDetail findUserBtDetailByConsentStatusAndUserId(String state, String userId);
 }

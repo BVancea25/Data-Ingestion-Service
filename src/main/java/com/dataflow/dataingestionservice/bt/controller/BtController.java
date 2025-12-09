@@ -19,4 +19,9 @@ public class BtController {
         return btService.createConsentAndBuildRedirect();
     }
 
+    @GetMapping("/bt/consent")
+    public String getValidConsent(){
+        return btService.getValidConsent();
+    }
+
 }
