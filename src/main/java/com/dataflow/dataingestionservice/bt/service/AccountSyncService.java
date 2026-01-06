@@ -6,7 +6,6 @@ import com.dataflow.dataingestionservice.Models.Transaction;
 import com.dataflow.dataingestionservice.Repositories.CurrencyRepository;
 import com.dataflow.dataingestionservice.Repositories.ExpenseRepository;
 import com.dataflow.dataingestionservice.Repositories.TransactionRepository;
-import com.dataflow.dataingestionservice.Utils.SecurityUtils;
 import com.dataflow.dataingestionservice.bt.config.BtApiProperties;
 import com.dataflow.dataingestionservice.bt.model.BankAccount;
 import com.dataflow.dataingestionservice.bt.model.UserBtDetail;
@@ -18,6 +17,7 @@ import org.springframework.http.*;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestTemplate;
 
 import java.math.BigDecimal;
@@ -99,7 +99,7 @@ public class AccountSyncService {
             JsonNode root = response.getBody();
             JsonNode transactionArray = root.path("transactions").path("booked");
 
-            if(transactionArray == null || !transactionArray.isArray() || transactionArray.size() == 0){
+            if(transactionArray == null || !transactionArray.isArray() || transactionArray.isEmpty()){
                 morePages = false;
             }else{
                 processTransactionNodes(transactionArray, account, userBtDetail);
@@ -169,6 +169,16 @@ public class AccountSyncService {
 
             HttpEntity<Void> req = new HttpEntity<>(headers);
             return restTemplate.exchange(url, HttpMethod.GET, req, JsonNode.class);
+        }catch (HttpClientErrorException e) {
+
+            if (e.getStatusCode() == HttpStatus.UNAUTHORIZED) {
+                // propagate a 401-like response to upper layer
+                return ResponseEntity
+                        .status(HttpStatus.UNAUTHORIZED)
+                        .body(e.getResponseBodyAs(JsonNode.class));
+            }
+
+            throw e; // rethrow other 4xx errors
         } catch (Exception e) {
             System.out.println("HTTP call failed: " + e.getMessage());
             return null;
@@ -226,6 +236,8 @@ public class AccountSyncService {
             String currencyCode = amountNode.path("currency").asText(null);
             Currency currencyEntity = currencyCode != null ? currencyRepository.findByCodeContainingIgnoreCase(currencyCode) : null;
 
+            String transactionDetails = txNode.path("details").asText();
+
             // parse date
             String bookingDateStr = txNode.path("bookingDate").asText(null);
             LocalDate bookingDate = parseDateFlexible(bookingDateStr);
@@ -249,6 +261,7 @@ public class AccountSyncService {
                 t.setDescription(details);
                 t.setCurrency(currencyEntity);
                 t.setCategory("bank");
+                t.setDescription(transactionDetails);
                 t.setPaymentMode(null);
                 t.setCreatedAt(LocalDateTime.now());
 

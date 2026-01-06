@@ -10,15 +10,10 @@ import com.dataflow.dataingestionservice.bt.model.UserBtDetail;
 import com.dataflow.dataingestionservice.bt.repository.BankAccountRepository;
 import com.dataflow.dataingestionservice.bt.repository.UserBtDetailRepository;
 import com.dataflow.dataingestionservice.bt.util.PkceUtil;
-import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.type.TypeFactory;
-import netscape.javascript.JSObject;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.*;
-import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
@@ -262,20 +257,27 @@ public class BtService {
         }
     }
 
+    public String refreshData(){
+        String userId = SecurityUtils.getCurrentUserUuid();
+        Optional<UserBtDetail> userBtDetail = btUserDetailRepository.findValidConsent(userId);
+
+        if(userBtDetail.isPresent()){
+            List<BankAccount> bankAccountList = bankAccountRepository.getBankAccountsByUserBtDetail(userBtDetail.get());
+
+            for(BankAccount bankAccount : bankAccountList){
+                accountSyncService.syncAccount(bankAccount,userBtDetail.get(),null);
+            }
+            return "data_refreshed";
+        }
+        return "failed_to_refresh";
+    }
 
     public String getValidConsent() {
+
         String userId = SecurityUtils.getCurrentUserUuid();
-        UserBtDetail userBtDetail = btUserDetailRepository.findUserBtDetailByConsentStatusAndUserId("valid", userId);
-        LocalDate validUntill = null;
+        Optional<UserBtDetail> userBtDetail = btUserDetailRepository.findValidConsent(userId);
 
-        if(userBtDetail != null){
-            validUntill = userBtDetail.getValidUntill();
-        }
-        else{
-            return "not_found";
-        }
-
-        if(validUntill != null && validUntill.isBefore(LocalDate.now()) ){
+        if(userBtDetail.isEmpty()){
             return "expired";
         }
 

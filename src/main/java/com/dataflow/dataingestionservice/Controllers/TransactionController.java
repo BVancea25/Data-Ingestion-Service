@@ -129,7 +129,7 @@ public class TransactionController {
      * @return a {@link ResponseEntity} indicating success or failure
      */
     @PostMapping("/income")
-    public ResponseEntity<String> postTransaction(@RequestBody List<Transaction> transactions) {
+    public ResponseEntity<String> postTransaction(@RequestBody List<TransactionDTO> transactions) {
         if (transactions == null || transactions.isEmpty()) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                     .body("Transaction list is empty.");
