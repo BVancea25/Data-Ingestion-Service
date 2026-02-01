@@ -41,6 +41,9 @@ public class TransactionSpecifications {
                 predicates.add(cb.lessThanOrEqualTo(root.get("transactionDate"), filter.getEndDate()));
             }
 
+            if(filter.getType() != null){
+                predicates.add(cb.equal(root.get("type"), filter.getType()));
+            }
             // Combine all with AND
             return cb.and(predicates.toArray(new Predicate[0]));
         };

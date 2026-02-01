@@ -1,6 +1,6 @@
 package com.dataflow.dataingestionservice.Models;
 
-import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import com.dataflow.dataingestionservice.Utils.Constants.TransactionType;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.NaturalId;
@@ -8,7 +8,6 @@ import org.springframework.batch.item.database.JdbcBatchItemWriter;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
-import java.util.UUID;
 
 /**
  * Represents a financial transaction record.
@@ -29,6 +28,7 @@ import java.util.UUID;
 @Entity
 @AllArgsConstructor
 @NoArgsConstructor
+@Data
 public class Transaction {
 
     /**
@@ -105,6 +105,16 @@ public class Transaction {
     @Column(name = "created_at")
     private LocalDateTime createdAt = LocalDateTime.now();
 
+    @Enumerated(EnumType.STRING)
+    @Column(name="type", nullable = false)
+    private TransactionType type = TransactionType.INCOME;
+
+    @PrePersist
+    public void prePersist() {
+        if (type == null) {
+            type = TransactionType.INCOME;
+        }
+    }
     /**
      * Returns a string representation of the transaction.
      *
@@ -123,198 +133,4 @@ public class Transaction {
                 '}';
     }
 
-    public void setCurrency(Currency currency) {
-        this.currency = currency;
-    }
-
-    public Currency getCurrency() {
-        return currency;
-    }
-
-    public String getBtTransactionId() {
-        return btTransactionId;
-    }
-
-    public void setBtTransactionId(String btTransactionId) {
-        this.btTransactionId = btTransactionId;
-    }
-    /**
-     * Gets the user identifier.
-     *
-     * @return the {@link String} representing the user ID
-     */
-    public String getUserId() {
-        return userId;
-    }
-
-    /**
-     * Sets the unique identifier for the transaction.
-     *
-     * @param id the {@link String} to set as the transaction ID
-     */
-    public void setId(String id) {
-        this.id = id;
-    }
-
-    /**
-     * Gets the unique identifier for the transaction.
-     *
-     * @return the {@link String} representing the transaction ID
-     */
-    public String getId() {
-        return id;
-    }
-
-    /**
-     * Returns the transaction ID as a string.
-     * Needed for injecting the parameter in the {@link JdbcBatchItemWriter} query
-     * @return the transaction ID as a string
-     */
-    public String getIdAsString() {
-        return id.toString();
-    }
-
-    /**
-     * Returns the user ID as a string.
-     * Needed for injecting the parameter in the {@link JdbcBatchItemWriter} query
-     * @return the user ID as a string
-     */
-    public String getUserIdAsString() {
-        return userId.toString();
-    }
-
-    /**
-     * Sets the user identifier.
-     *
-     * @param userId the {@link String} representing the user ID
-     */
-    public void setUserId(String userId) {
-        this.userId = userId;
-    }
-
-    /**
-     * Gets the transaction date and time.
-     *
-     * @return the {@link LocalDateTime} of the transaction
-     */
-    public LocalDateTime getTransactionDate() {
-        return transactionDate;
-    }
-
-    /**
-     * Sets the transaction date and time.
-     *
-     * @param transactionDate the {@link LocalDateTime} to set for the transaction
-     */
-    public void setTransactionDate(LocalDateTime transactionDate) {
-        this.transactionDate = transactionDate;
-    }
-
-    /**
-     * Gets the category of the transaction.
-     *
-     * @return the transaction category as a {@link String}
-     */
-    public String getCategory() {
-        return category;
-    }
-
-    /**
-     * Sets the category of the transaction.
-     *
-     * @param category the category to set
-     */
-    public void setCategory(String category) {
-        this.category = category;
-    }
-
-    /**
-     * Gets the description of the transaction.
-     *
-     * @return the transaction description as a {@link String}
-     */
-    public String getDescription() {
-        return description;
-    }
-
-    /**
-     * Sets the description of the transaction.
-     *
-     * @param description the description to set
-     */
-    public void setDescription(String description) {
-        this.description = description;
-    }
-
-    /**
-     * Gets the currency of the transaction.
-     *
-     * @return the currency as a {@link String}
-     */
-    public String getCurrencyCode() {
-        return currencyCode;
-    }
-
-    /**
-     * Sets the currency of the transaction.
-     *
-     * @param currencyCode the currency to set
-     */
-    public void setCurrencyCode(String currencyCode) {
-        this.currencyCode = currencyCode;
-    }
-
-    /**
-     * Gets the payment mode of the transaction.
-     *
-     * @return the payment mode as a {@link String}
-     */
-    public String getPaymentMode() {
-        return paymentMode;
-    }
-
-    /**
-     * Sets the payment mode of the transaction.
-     *
-     * @param paymentMode the payment mode to set
-     */
-    public void setPaymentMode(String paymentMode) {
-        this.paymentMode = paymentMode;
-    }
-
-    /**
-     * Gets the creation timestamp of the transaction record.
-     *
-     * @return the {@link LocalDateTime} when the transaction was created
-     */
-    public LocalDateTime getCreatedAt() {
-        return createdAt;
-    }
-
-    /**
-     * Sets the creation timestamp of the transaction record.
-     *
-     * @param createdAt the {@link LocalDateTime} to set as the creation time
-     */
-    public void setCreatedAt(LocalDateTime createdAt) {
-        this.createdAt = createdAt;
-    }
-
-    /**
-     * Gets the transaction amount.
-     *
-     * @return the transaction amount as a {@link BigDecimal}
-     */
-    public BigDecimal getAmount() {
-        return amount;
-    }
-
-    /**
-     * Sets the transaction amount.
-     *
-     * @param amount the {@link BigDecimal} amount to set for the transaction
-     */
-    public void setAmount(BigDecimal amount) {
-        this.amount = amount;
-    }
 }

@@ -1,6 +1,6 @@
 package com.dataflow.dataingestionservice.Utils.Constants;
 
-public enum SyncOperations {
+public enum SyncOperation {
     CREATE,
     UPDATE,
     DELETE

@@ -9,11 +9,13 @@ import com.dataflow.dataingestionservice.Models.Transaction;
 import com.dataflow.dataingestionservice.Repositories.CurrencyRepository;
 import com.dataflow.dataingestionservice.Repositories.TransactionRepository;
 import com.dataflow.dataingestionservice.Specifications.TransactionSpecifications;
-import com.dataflow.dataingestionservice.Utils.Constants.SyncOperations;
+import com.dataflow.dataingestionservice.Utils.Constants.SyncOperation;
 import com.dataflow.dataingestionservice.Utils.SecurityUtils;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -59,6 +61,7 @@ public class TransactionService {
                     tx.setTransactionDate(dto.getTransactionDate());
                     tx.setPaymentMode(dto.getPaymentMode());
                     tx.setDescription(dto.getDescription());
+                    tx.setType(dto.getType());
 
                     Currency currency = currencyRepository
                             .findByCodeContainingIgnoreCase(dto.getCurrencyCode());
@@ -71,7 +74,7 @@ public class TransactionService {
         transactionRepository.saveAll(entities);
 
         List<FactTransactionDTO> factDtos = entities.stream()
-                .map(tx -> mapToFactTransactionDTO(tx, SyncOperations.CREATE))
+                .map(tx -> mapToFactTransactionDTO(tx, SyncOperation.CREATE))
                 .toList();
 
         sendToReportingService(factDtos);
@@ -86,6 +89,7 @@ public class TransactionService {
         existing.setCategory(transactionDTO.getCategory());
         existing.setTransactionDate(transactionDTO.getTransactionDate());
         existing.setPaymentMode(transactionDTO.getPaymentMode());
+        existing.setType(transactionDTO.getType());
 
         Currency currency = currencyRepository
                 .findByCodeContainingIgnoreCase(transactionDTO.getCurrencyCode());
@@ -94,7 +98,7 @@ public class TransactionService {
         transactionRepository.save(existing);
 
         FactTransactionDTO dto =
-                mapToFactTransactionDTO(existing, SyncOperations.UPDATE);
+                mapToFactTransactionDTO(existing, SyncOperation.UPDATE);
 
         sendToReportingService(List.of(dto));
     }
@@ -109,7 +113,7 @@ public class TransactionService {
                 .map(id -> {
                     FactTransactionDTO dto = new FactTransactionDTO();
                     dto.setId(id);
-                    dto.setOperation(SyncOperations.DELETE);
+                    dto.setOperation(SyncOperation.DELETE);
                     return dto;
                 })
                 .toList();
@@ -117,7 +121,7 @@ public class TransactionService {
         sendToReportingService(dtos);
     }
 
-    private FactTransactionDTO mapToFactTransactionDTO(Transaction tx, SyncOperations operation) {
+    private FactTransactionDTO mapToFactTransactionDTO(Transaction tx, SyncOperation operation) {
         FactTransactionDTO dto = new FactTransactionDTO();
         dto.setId(tx.getId());
         dto.setAmount(tx.getAmount());
@@ -127,14 +131,22 @@ public class TransactionService {
         dto.setCurrencyCode(tx.getCurrency() != null ? tx.getCurrency().getCode() : null);
         dto.setOperation(operation);
         dto.setUserId(tx.getUserId());
+        dto.setDateKey(tx.getTransactionDate().toLocalDate());
+        dto.setType(tx.getType());
         return dto;
     }
 
     private void sendToReportingService(List<FactTransactionDTO> dtos) {
         System.out.println(reportingServiceApiProperties.getApiBase());
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.set("X-REPORTING-API-KEY", reportingServiceApiProperties.getApiKey());
+
+        HttpEntity<List<FactTransactionDTO>> request = new HttpEntity<>(dtos,headers);
+
         ResponseEntity<String> response = restTemplate.postForEntity(
                 reportingServiceApiProperties.getApiBase() + "/api/transactions/sync",
-                dtos,
+                request,
                 String.class
         );
 
@@ -158,7 +170,8 @@ public class TransactionService {
                         tx.getAmount(),
                         tx.getCurrency() != null ? tx.getCurrency().getCode() : null, // extract just the code
                         tx.getPaymentMode(),
-                        tx.getCreatedAt()
+                        tx.getCreatedAt(),
+                        tx.getType()
                 ))
                 .collect(Collectors.toList());
 

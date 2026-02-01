@@ -18,10 +18,6 @@ import java.util.UUID;
  * This ensures that each transaction record has a unique identifier when persisted.
  * </p>
  *
- * <p>
- * The class uses Lombok's {@code @AllArgsConstructor} and {@code @NoArgsConstructor} annotations to generate both
- * an all-arguments constructor and a no-arguments constructor.
- * </p>
  *
  * @see org.springframework.batch.item.ItemProcessor
  */

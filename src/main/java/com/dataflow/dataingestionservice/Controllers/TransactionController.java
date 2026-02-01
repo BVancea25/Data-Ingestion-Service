@@ -5,6 +5,7 @@ import com.dataflow.dataingestionservice.DTO.TransactionDTO;
 import com.dataflow.dataingestionservice.DTO.TransactionFilter;
 import com.dataflow.dataingestionservice.Models.Transaction;
 import com.dataflow.dataingestionservice.Services.TransactionService;
+import com.dataflow.dataingestionservice.Utils.Constants.TransactionType;
 import com.dataflow.dataingestionservice.Utils.SecurityUtils;
 import org.apache.commons.io.FilenameUtils;
 import org.slf4j.Logger;
@@ -155,9 +156,10 @@ public class TransactionController {
             @RequestParam(required = false) String paymentMode,
             @RequestParam(required = false) String description,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
-            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate,
+            @RequestParam(required = false) TransactionType type
 
-    ){
+            ){
         Sort sort = ascending ? Sort.by(sortBy).ascending() : Sort.by(sortBy).descending();
         Pageable pageable = PageRequest.of(page,size,sort);
         System.out.println(paymentMode);
@@ -168,6 +170,7 @@ public class TransactionController {
         filter.setDescription(description);
         filter.setStartDate(startDate);
         filter.setEndDate(endDate);
+        filter.setType(type);
 
         String userId = SecurityUtils.getCurrentUserUuid();
         return transactionService.getCurrentUserTransactions(pageable,filter,userId);

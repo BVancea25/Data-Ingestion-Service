@@ -4,7 +4,9 @@ import com.dataflow.dataingestionservice.Config.ItemProcessor.TransactionProcess
 import com.dataflow.dataingestionservice.Models.Transaction;
 import com.dataflow.dataingestionservice.Repositories.CurrencyRepository;
 import com.dataflow.dataingestionservice.Utils.ColumnFormatter;
+import com.dataflow.dataingestionservice.Utils.Constants.TransactionType;
 import com.dataflow.dataingestionservice.Utils.LoggingItemWriteListener;
+import com.dataflow.dataingestionservice.Utils.ReportingSyncItemWriteListener;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.batch.core.*;
@@ -246,21 +248,23 @@ public class TransactionBatchConfig {
         JdbcBatchItemWriter<Transaction> writer = new JdbcBatchItemWriter<>();
         writer.setDataSource(dataSource);
         writer.setSql(
-                "INSERT INTO transactions (id, user_id, transaction_date, category, description, amount, currency_id, payment_mode, created_at) " +
-                        "VALUES (:id,:userId, :transactionDate, :category, :description, :amount, :currencyId, :paymentMode, :createdAt) " +
+                "INSERT INTO transactions (id, user_id, transaction_date, category, description, amount, currency_id, payment_mode, created_at, type) " +
+                        "VALUES (:id,:userId, :transactionDate, :category, :description, :amount, :currencyId, :paymentMode, :createdAt, :type) " +
                         "ON DUPLICATE KEY UPDATE " +
                         "category = VALUES(category), " +
                         "description = VALUES(description), " +
                         "amount = VALUES(amount), " +
                         "currency_id = VALUES(currency_id), " +
                         "payment_mode = VALUES(payment_mode), " +
-                        "created_at = VALUES(created_at)");
+                        "created_at = VALUES(created_at), " +
+                        "type = VALUES(type)"
+        );
         writer.setItemSqlParameterSourceProvider(new BeanPropertyItemSqlParameterSourceProvider<Transaction>(){
             @Override
             public SqlParameterSource createSqlParameterSource(Transaction item) {
                 MapSqlParameterSource paramSource = new MapSqlParameterSource();
-                paramSource.addValue("id", item.getIdAsString());
-                paramSource.addValue("userId", item.getUserIdAsString());
+                paramSource.addValue("id", item.getId());
+                paramSource.addValue("userId", item.getUserId());
                 paramSource.addValue("transactionDate", item.getTransactionDate());
                 paramSource.addValue("category", item.getCategory());
                 paramSource.addValue("description", item.getDescription());
@@ -268,6 +272,7 @@ public class TransactionBatchConfig {
                 paramSource.addValue("currencyId", item.getCurrency().getIdAsString());
                 paramSource.addValue("paymentMode", item.getPaymentMode());
                 paramSource.addValue("createdAt", item.getCreatedAt());
+                paramSource.addValue("type", item.getAmount().compareTo(BigDecimal.ZERO) > 0 ? TransactionType.INCOME : TransactionType.EXPENSE);
                 return paramSource;
             }
         });
@@ -294,13 +299,15 @@ public class TransactionBatchConfig {
                            PlatformTransactionManager transactionManager,
                            SynchronizedItemStreamReader<Transaction> itemReader,
                            ItemProcessor<Transaction, Transaction> transactionProcessor,
-                           JdbcBatchItemWriter<Transaction> itemWriter) {
+                           JdbcBatchItemWriter<Transaction> itemWriter,
+                           ReportingSyncItemWriteListener syncListener) {
 
         return new StepBuilder("insertStep", jobRepository)
                 .<Transaction, Transaction>chunk(50, transactionManager)
                 .reader(itemReader)
                 .processor(transactionProcessor)
                 .writer(itemWriter)
+                .listener(syncListener)
                 .listener(new LoggingItemWriteListener<>())
                 .build();
     }

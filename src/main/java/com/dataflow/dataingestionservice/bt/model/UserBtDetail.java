@@ -2,6 +2,7 @@ package com.dataflow.dataingestionservice.bt.model;
 
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
+import lombok.Data;
 import lombok.NoArgsConstructor;
 import java.time.LocalDate;
 import java.util.Date;
@@ -10,6 +11,7 @@ import java.util.Date;
 @Entity
 @AllArgsConstructor
 @NoArgsConstructor
+@Data
 public class UserBtDetail {
 
     @Id
@@ -30,78 +32,6 @@ public class UserBtDetail {
 
     @Column
     private String state;
-
-    public String getState() {
-        return state;
-    }
-
-    public void setState(String state) {
-        this.state = state;
-    }
-
-    public String getConsentId() {
-        return consentId;
-    }
-
-    public void setConsentId(String consentId) {
-        this.consentId = consentId;
-    }
-
-    public String getConsentStatus() {
-        return consentStatus;
-    }
-
-    public void setConsentStatus(String consentStatus) {
-        this.consentStatus = consentStatus;
-    }
-
-    public String getCode() {
-        return code;
-    }
-
-    public void setCode(String code) {
-        this.code = code;
-    }
-
-    public String getAccessToken() {
-        return accessToken;
-    }
-
-    public void setAccessToken(String accessToken) {
-        this.accessToken = accessToken;
-    }
-
-    public String getRefreshToken() {
-        return refreshToken;
-    }
-
-    public void setRefreshToken(String refreshToken) {
-        this.refreshToken = refreshToken;
-    }
-
-    public String getUserId() {
-        return userId;
-    }
-
-    public void setUserId(String userId) {
-        this.userId = userId;
-    }
-
-    public LocalDate getValidUntill() {
-        return validUntill;
-    }
-
-    public void setValidUntill(LocalDate validUntill) {
-        this.validUntill = validUntill;
-    }
-
-    public String getCodeVerifier() {
-        return codeVerifier;
-    }
-
-    public void setCodeVerifier(String codeVerifier) {
-        this.codeVerifier = codeVerifier;
-    }
 
     @Column
     private String userId;

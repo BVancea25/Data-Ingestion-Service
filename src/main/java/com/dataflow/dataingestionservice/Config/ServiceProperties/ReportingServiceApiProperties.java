@@ -9,4 +9,5 @@ import org.springframework.stereotype.Component;
 @Data
 public class ReportingServiceApiProperties {
         private String apiBase;
+        private String apiKey;
 }

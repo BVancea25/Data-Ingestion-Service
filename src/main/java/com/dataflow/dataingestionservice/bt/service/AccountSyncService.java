@@ -6,6 +6,7 @@ import com.dataflow.dataingestionservice.Models.Transaction;
 import com.dataflow.dataingestionservice.Repositories.CurrencyRepository;
 import com.dataflow.dataingestionservice.Repositories.ExpenseRepository;
 import com.dataflow.dataingestionservice.Repositories.TransactionRepository;
+import com.dataflow.dataingestionservice.Utils.Constants.TransactionType;
 import com.dataflow.dataingestionservice.bt.config.BtApiProperties;
 import com.dataflow.dataingestionservice.bt.model.BankAccount;
 import com.dataflow.dataingestionservice.bt.model.UserBtDetail;
@@ -207,10 +208,9 @@ public class AccountSyncService {
 
         // fetch existing bt ids in DB to avoid duplicates (batch)
         Set<String> existingTxIds = new HashSet<>(transactionRepository.getTransactionsIdsByBtTransactionId(btIds, userBtDetail.getUserId()));
-        Set<String> existingExpenseIds = new HashSet<>(expenseRepository.getExpensesIdsByBtTransactionId(btIds, userBtDetail.getUserId()));
+
         // now iterate and save only new ones
         List<Transaction> txsToSave = new ArrayList<>();
-        List<Expense> expsToSave = new ArrayList<>();
 
         //create counter for syntetic time as the api returns LocalDate with no time
         Map<LocalDate, Integer> counters = new HashMap<>();
@@ -218,7 +218,7 @@ public class AccountSyncService {
         for (JsonNode txNode : transactionsArray) {
             String btId = txNode.path("transactionId").asText(null);
             if (btId == null) continue;
-            if (existingTxIds.contains(btId) || existingExpenseIds.contains(btId)) {
+            if (existingTxIds.contains(btId)) {
                 // already have this transaction
                 continue;
             }
@@ -251,44 +251,28 @@ public class AccountSyncService {
             String details = txNode.path("details").asText(null);
 
             //positive -> income
-            if (amount.compareTo(BigDecimal.ZERO) > 0) {
-                Transaction t = new Transaction();
-                t.setId(UUID.randomUUID().toString());
-                t.setBtTransactionId(btId);
-                t.setUserId(userBtDetail.getUserId());
-                t.setTransactionDate(syntheticDateTime);
-                t.setAmount(amount);
-                t.setDescription(details);
-                t.setCurrency(currencyEntity);
-                t.setCategory("bank");
-                t.setDescription(transactionDetails);
-                t.setPaymentMode(null);
-                t.setCreatedAt(LocalDateTime.now());
 
-                txsToSave.add(t);
-            } else {
-                // amount == 0  income; <=0 expense
-                Expense e = new Expense();
-                e.setId(UUID.randomUUID().toString());
-                e.setBtTransactionId(btId);
-                e.setUserId(userBtDetail.getUserId());
-                e.setDueDate(null);
-                e.setAmount(amount.negate());
-                e.setCurrency(currencyEntity);
-                e.setDescription(details);
-                e.setExpenseType("bank");
-                expsToSave.add(e);
-            }
+             Transaction t = new Transaction();
+             t.setId(UUID.randomUUID().toString());
+             t.setBtTransactionId(btId);
+             t.setUserId(userBtDetail.getUserId());
+             t.setTransactionDate(syntheticDateTime);
+             t.setAmount(amount);
+             t.setDescription(details);
+             t.setCurrency(currencyEntity);
+             t.setCategory("bank");
+             t.setDescription(transactionDetails);
+             t.setPaymentMode(null);
+             t.setCreatedAt(LocalDateTime.now());
+             t.setType(amount.compareTo(BigDecimal.ZERO) > 0 ? TransactionType.INCOME : TransactionType.EXPENSE);
+             txsToSave.add(t);
+
         }
 
         // bulk save (filtered for duplicates)
         if (!txsToSave.isEmpty()) {
             transactionRepository.saveAll(txsToSave);
             System.out.println("Saved " + txsToSave.size() + " transactions for account " + account.getIban());
-        }
-        if (!expsToSave.isEmpty()) {
-            expenseRepository.saveAll(expsToSave);
-            System.out.println("Saved " + expsToSave.size() + " expenses for account " + account.getIban());
         }
 
         int id = bankAccountRepository.updateBankAccountById(account.getId(), LocalDateTime.now());
