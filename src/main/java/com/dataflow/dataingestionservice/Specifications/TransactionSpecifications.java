@@ -17,16 +17,16 @@ public class TransactionSpecifications {
             // Only user's transactions
             predicates.add(cb.equal(root.get("userId"), userId));
 
-            if (filter.getCategory() != null && !filter.getCategory().isEmpty()) {
-                predicates.add(cb.equal(cb.lower(root.get("category")), filter.getCategory().toLowerCase()));
+            if (filter.getCategoryId() != null && !filter.getCategoryId().isEmpty()) {
+                predicates.add(cb.equal(root.get("categoryId"), filter.getCategoryId()));
             }
 
             if (filter.getCurrencyCode() != null && !filter.getCurrencyCode().isEmpty()) {
                 predicates.add(cb.equal(root.get("currencyCode"), filter.getCurrencyCode()));
             }
 
-            if (filter.getPaymentMode() != null && !filter.getPaymentMode().isEmpty()) {
-                predicates.add(cb.equal(cb.lower(root.get("paymentMode")), filter.getPaymentMode().toLowerCase()));
+            if (filter.getPaymentMode() != null) {
+                predicates.add(cb.equal(root.get("paymentMode"), filter.getPaymentMode()));
             }
 
             if (filter.getDescription() != null && !filter.getDescription().isEmpty()) {

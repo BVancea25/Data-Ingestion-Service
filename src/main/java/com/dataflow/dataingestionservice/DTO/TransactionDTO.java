@@ -1,5 +1,6 @@
 package com.dataflow.dataingestionservice.DTO;
 
+import com.dataflow.dataingestionservice.Utils.Constants.PaymentMethod;
 import com.dataflow.dataingestionservice.Utils.Constants.TransactionType;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -14,11 +15,12 @@ import java.time.LocalDateTime;
 public class TransactionDTO {
     private String id;
     private LocalDateTime transactionDate;
-    private String category;
+    private String categoryId;
     private String description;
     private BigDecimal amount;
     private String currencyCode;
-    private String paymentMode;
+    private PaymentMethod paymentMode;
     private LocalDateTime createdAt;
     private TransactionType type;
+    private String categoryName;
 }

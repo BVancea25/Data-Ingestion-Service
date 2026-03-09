@@ -26,14 +26,14 @@ import java.util.*;
 @Service
 public class BtService {
     private final BtApiProperties props;
-    private final RestTemplate restTemplate = new RestTemplate();
+    private final RestTemplate restTemplate;
     private final ObjectMapper objectMapper;
     private final UserBtDetailRepository btUserDetailRepository;
     private final CurrencyRepository currencyRepository;
     private final BankAccountRepository bankAccountRepository;
     private final AccountSyncService accountSyncService;
     private final AuthService authService;
-    public BtService(BtApiProperties props,
+    public BtService(BtApiProperties props, RestTemplate restTemplate,
                      UserBtDetailRepository btUserDetailRepository,
                      CurrencyRepository currencyRepository,
                      BankAccountRepository bankAccountRepository,
@@ -41,6 +41,7 @@ public class BtService {
                      AuthService authService,
                      AccountSyncService accountSyncService){
         this.props = props;
+        this.restTemplate = restTemplate;
         this.btUserDetailRepository = btUserDetailRepository;
         this.currencyRepository = currencyRepository;
         this.objectMapper = objectMapper;

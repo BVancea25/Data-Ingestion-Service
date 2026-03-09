@@ -1,5 +1,6 @@
 package com.dataflow.dataingestionservice.Models;
 
+import com.dataflow.dataingestionservice.Utils.Constants.PaymentMethod;
 import com.dataflow.dataingestionservice.Utils.Constants.TransactionType;
 import jakarta.persistence.*;
 import lombok.*;
@@ -62,8 +63,9 @@ public class Transaction {
      * The category of the transaction.
      * Cannot be null.
      */
-    @Column(name = "category", nullable = false)
-    private String category;
+    @JoinColumn(name = "category_id", nullable = true)
+    @ManyToOne(fetch = FetchType.LAZY)
+    private Category category;
 
     /**
      * A description of the transaction.
@@ -85,14 +87,18 @@ public class Transaction {
     @Transient
     private String currencyCode;
 
+    @Transient
+    private String categoryName;
+
     @ManyToOne(targetEntity = Currency.class)
     @JoinColumn(name = "currency_id")
     private Currency currency;
     /**
      * The payment mode used for the transaction (e.g., "Credit Card", "Cash").
      */
+    @Enumerated(EnumType.STRING)
     @Column(name = "payment_mode")
-    private String paymentMode;
+    private PaymentMethod paymentMode;
 
 
     @Column(name = "bt_transaction_id", nullable = true)

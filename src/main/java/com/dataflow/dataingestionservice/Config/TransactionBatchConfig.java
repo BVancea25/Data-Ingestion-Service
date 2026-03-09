@@ -2,6 +2,7 @@ package com.dataflow.dataingestionservice.Config;
 
 import com.dataflow.dataingestionservice.Config.ItemProcessor.TransactionProcessor;
 import com.dataflow.dataingestionservice.Models.Transaction;
+import com.dataflow.dataingestionservice.Repositories.CategoryRepository;
 import com.dataflow.dataingestionservice.Repositories.CurrencyRepository;
 import com.dataflow.dataingestionservice.Utils.ColumnFormatter;
 import com.dataflow.dataingestionservice.Utils.Constants.TransactionType;
@@ -65,6 +66,9 @@ public class TransactionBatchConfig {
     @Autowired
     private CurrencyRepository currencyRepository;
 
+    @Autowired
+    private CategoryRepository categoryRepository;
+
     /**
      * Creates a {@link FlatFileItemReader} for reading transactions from a CSV file.
      *
@@ -118,7 +122,7 @@ public class TransactionBatchConfig {
         StreamingXlsxItemReader<Transaction> poiItemReader = new StreamingXlsxItemReader<>();
 
         // Define the column names expected in the Excel file
-        String[] columns = new String[] { "transactionDate", "category", "description", "amount", "currencyCode", "paymentMode"};
+        String[] columns = new String[] { "transactionDate", "categoryName", "description", "amount", "currencyCode", "paymentMode"};
         StaticColumnNameExtractor columnNameExtractor = new StaticColumnNameExtractor(columns);
         DefaultRowSetFactory rowSetFactory = new DefaultRowSetFactory();
         rowSetFactory.setColumnNameExtractor(columnNameExtractor);
@@ -186,7 +190,7 @@ public class TransactionBatchConfig {
         DelimitedLineTokenizer tokenizer = new DelimitedLineTokenizer();
 
         tokenizer.setDelimiter(",");
-        tokenizer.setNames("transactionDate", "category", "description", "amount", "currencyCode", "paymentMode");
+        tokenizer.setNames("transactionDate", "categoryName", "description", "amount", "currencyCode", "paymentMode");
         tokenizer.setStrict(false);
 
         BeanWrapperFieldSetMapper<Transaction> mapper = new BeanWrapperFieldSetMapper<>();
@@ -216,7 +220,7 @@ public class TransactionBatchConfig {
      */
     @Bean
     public ItemProcessor<Transaction, Transaction> transactionProcessor() {
-        return new TransactionProcessor(currencyRepository);
+        return new TransactionProcessor(currencyRepository, categoryRepository);
     }
 
     /**

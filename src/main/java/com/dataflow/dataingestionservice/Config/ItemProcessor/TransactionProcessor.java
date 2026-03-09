@@ -1,7 +1,9 @@
 package com.dataflow.dataingestionservice.Config.ItemProcessor;
 
+import com.dataflow.dataingestionservice.Models.Category;
 import com.dataflow.dataingestionservice.Models.Currency;
 import com.dataflow.dataingestionservice.Models.Transaction;
+import com.dataflow.dataingestionservice.Repositories.CategoryRepository;
 import com.dataflow.dataingestionservice.Repositories.CurrencyRepository;
 import com.dataflow.dataingestionservice.Utils.SecurityUtils;
 import jakarta.annotation.PostConstruct;
@@ -9,6 +11,7 @@ import org.springframework.batch.item.ItemProcessor;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 
 /**
@@ -19,16 +22,18 @@ import java.util.UUID;
  * </p>
  *
  *
- * @see org.springframework.batch.item.ItemProcessor
+ * @see ItemProcessor
  */
 
 public class TransactionProcessor implements ItemProcessor<Transaction, Transaction> {
 
     private final Map<String, Currency> currencyCache = new HashMap<>();
     private final CurrencyRepository currencyRepository;
+    private final CategoryRepository categoryRepository;
 
-    public TransactionProcessor(CurrencyRepository currencyRepository){
+    public TransactionProcessor(CurrencyRepository currencyRepository, CategoryRepository categoryRepository){
         this.currencyRepository=currencyRepository;
+        this.categoryRepository = categoryRepository;
     }
     /**
      * Processes a {@link Transaction} by assigning it a new random UUID.
@@ -40,6 +45,8 @@ public class TransactionProcessor implements ItemProcessor<Transaction, Transact
     @Override
     public Transaction process(Transaction item) throws Exception {
         String currencyCode = item.getCurrencyCode();
+        String categoryName = item.getCategoryName();
+
         Currency currency;
         currency=currencyCache.get(currencyCode);
 
@@ -49,6 +56,15 @@ public class TransactionProcessor implements ItemProcessor<Transaction, Transact
         if(currency  == null){
             throw new IllegalStateException("Currency not found for code: " + currencyCode);
         }
+
+        Category category = null;
+
+        if(categoryName != null){
+            category = categoryRepository.findByNameIgnoreCase(categoryName);
+        }
+
+
+        item.setCategory(category);
         item.setCurrency(currency);
         item.setId(UUID.randomUUID().toString());
         item.setUserId(SecurityUtils.getCurrentUserUuid());

@@ -1,11 +1,15 @@
 package com.dataflow.dataingestionservice.bt.service;
 
+import com.dataflow.dataingestionservice.DTO.FactTransactionDTO;
 import com.dataflow.dataingestionservice.Models.Currency;
 import com.dataflow.dataingestionservice.Models.Expense;
 import com.dataflow.dataingestionservice.Models.Transaction;
 import com.dataflow.dataingestionservice.Repositories.CurrencyRepository;
 import com.dataflow.dataingestionservice.Repositories.ExpenseRepository;
 import com.dataflow.dataingestionservice.Repositories.TransactionRepository;
+import com.dataflow.dataingestionservice.Services.TransactionService;
+import com.dataflow.dataingestionservice.Utils.Constants.PaymentMethod;
+import com.dataflow.dataingestionservice.Utils.Constants.SyncOperation;
 import com.dataflow.dataingestionservice.Utils.Constants.TransactionType;
 import com.dataflow.dataingestionservice.bt.config.BtApiProperties;
 import com.dataflow.dataingestionservice.bt.model.BankAccount;
@@ -29,13 +33,11 @@ import java.util.*;
 
 @Service
 public class AccountSyncService {
-    private final RestTemplate restTemplate =  new RestTemplate();
+    private final RestTemplate restTemplate;
     private final BtApiProperties props;
-    private final ObjectMapper objectMapper;
-    private final UserBtDetailRepository btUserDetailRepository;
+    private final TransactionService transactionService;
     private final BankAccountRepository bankAccountRepository;
     private final TransactionRepository transactionRepository;
-    private final ExpenseRepository expenseRepository;
     private final CurrencyRepository currencyRepository;
 
     private final AuthService authService;
@@ -46,22 +48,19 @@ public class AccountSyncService {
             DateTimeFormatter.ISO_LOCAL_DATE
     };
 
-    public AccountSyncService( BtApiProperties props,
-                               ObjectMapper objectMapper,
-                               UserBtDetailRepository btUserDetailRepository,
-                               BankAccountRepository bankAccountRepository,
-                               TransactionRepository transactionRepository,
-                               ExpenseRepository expenseRepository,
-                               CurrencyRepository currencyRepository,
-                               AuthService authService) {
+    public AccountSyncService(RestTemplate restTemplate, BtApiProperties props,
+                              BankAccountRepository bankAccountRepository,
+                              TransactionRepository transactionRepository,
+                              CurrencyRepository currencyRepository,
+                              AuthService authService,
+                              TransactionService transactionService) {
+        this.restTemplate = restTemplate;
         this.props = props;
-        this.objectMapper = objectMapper;
-        this.btUserDetailRepository = btUserDetailRepository;
         this.bankAccountRepository = bankAccountRepository;
         this.transactionRepository = transactionRepository;
-        this.expenseRepository = expenseRepository;
         this.currencyRepository = currencyRepository;
         this.authService = authService;
+        this.transactionService = transactionService;
     }
 
     /**
@@ -211,6 +210,7 @@ public class AccountSyncService {
 
         // now iterate and save only new ones
         List<Transaction> txsToSave = new ArrayList<>();
+        List<FactTransactionDTO> txsToSync = new ArrayList<>();
 
         //create counter for syntetic time as the api returns LocalDate with no time
         Map<LocalDate, Integer> counters = new HashMap<>();
@@ -260,18 +260,19 @@ public class AccountSyncService {
              t.setAmount(amount);
              t.setDescription(details);
              t.setCurrency(currencyEntity);
-             t.setCategory("bank");
              t.setDescription(transactionDetails);
-             t.setPaymentMode(null);
+             t.setPaymentMode(PaymentMethod.CARD);
              t.setCreatedAt(LocalDateTime.now());
              t.setType(amount.compareTo(BigDecimal.ZERO) > 0 ? TransactionType.INCOME : TransactionType.EXPENSE);
              txsToSave.add(t);
 
+             txsToSync.add(transactionService.mapToFactTransactionDTO(t, SyncOperation.CREATE));
         }
 
         // bulk save (filtered for duplicates)
         if (!txsToSave.isEmpty()) {
             transactionRepository.saveAll(txsToSave);
+            transactionService.sendToReportingService(txsToSync);
             System.out.println("Saved " + txsToSave.size() + " transactions for account " + account.getIban());
         }
 

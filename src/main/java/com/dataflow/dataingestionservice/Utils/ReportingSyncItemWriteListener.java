@@ -22,8 +22,8 @@ public class ReportingSyncItemWriteListener implements ItemWriteListener<Transac
     private final ReportingServiceApiProperties props;
 
     public ReportingSyncItemWriteListener(
-            ReportingServiceApiProperties props) {
-        this.restTemplate = new RestTemplate();
+            RestTemplate restTemplate, ReportingServiceApiProperties props) {
+        this.restTemplate = restTemplate;
         this.props = props;
     }
 
@@ -38,7 +38,7 @@ public class ReportingSyncItemWriteListener implements ItemWriteListener<Transac
                     FactTransactionDTO dto = new FactTransactionDTO();
                     dto.setId(tx.getId());
                     dto.setAmount(tx.getAmount());
-                    dto.setCategory(tx.getCategory());
+                    dto.setCategoryId(tx.getCategory().getId());
                     dto.setTransaction_date(tx.getTransactionDate());
                     dto.setPaymentMode(tx.getPaymentMode());
                     dto.setCurrencyCode(tx.getCurrency().getCode());

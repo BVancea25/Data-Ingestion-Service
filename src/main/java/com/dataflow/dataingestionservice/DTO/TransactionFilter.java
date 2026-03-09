@@ -1,5 +1,7 @@
 package com.dataflow.dataingestionservice.DTO;
 
+import com.dataflow.dataingestionservice.Models.Category;
+import com.dataflow.dataingestionservice.Utils.Constants.PaymentMethod;
 import com.dataflow.dataingestionservice.Utils.Constants.TransactionType;
 import lombok.*;
 
@@ -9,12 +11,12 @@ import java.time.LocalDate;
 @AllArgsConstructor
 @NoArgsConstructor
 public class TransactionFilter {
-    private String category;
     private String currencyCode;
-    private String paymentMode;
+    private PaymentMethod paymentMode;
     private String description;
     private LocalDate startDate;
     private LocalDate endDate;
     private TransactionType type;
+    private String categoryId;
 
 }

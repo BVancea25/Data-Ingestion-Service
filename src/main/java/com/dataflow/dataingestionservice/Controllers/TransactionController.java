@@ -5,6 +5,7 @@ import com.dataflow.dataingestionservice.DTO.TransactionDTO;
 import com.dataflow.dataingestionservice.DTO.TransactionFilter;
 import com.dataflow.dataingestionservice.Models.Transaction;
 import com.dataflow.dataingestionservice.Services.TransactionService;
+import com.dataflow.dataingestionservice.Utils.Constants.PaymentMethod;
 import com.dataflow.dataingestionservice.Utils.Constants.TransactionType;
 import com.dataflow.dataingestionservice.Utils.SecurityUtils;
 import org.apache.commons.io.FilenameUtils;
@@ -151,9 +152,9 @@ public class TransactionController {
             @RequestParam(defaultValue = "20") int size,
             @RequestParam(defaultValue = "transactionDate") String sortBy,
             @RequestParam(defaultValue = "true") boolean ascending,
-            @RequestParam(required = false) String category,
+            @RequestParam(required = false) String categoryId,
             @RequestParam(required = false) String currencyCode,
-            @RequestParam(required = false) String paymentMode,
+            @RequestParam(required = false) PaymentMethod paymentMode,
             @RequestParam(required = false) String description,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate,
@@ -164,7 +165,7 @@ public class TransactionController {
         Pageable pageable = PageRequest.of(page,size,sort);
         System.out.println(paymentMode);
         TransactionFilter filter = new TransactionFilter();
-        filter.setCategory(category);
+        filter.setCategoryId(categoryId);
         filter.setCurrencyCode(currencyCode);
         filter.setPaymentMode(paymentMode);
         filter.setDescription(description);

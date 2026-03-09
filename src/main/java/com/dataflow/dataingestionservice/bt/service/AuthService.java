@@ -14,12 +14,13 @@ import java.util.Map;
 @Service
 public class AuthService {
     private final BtApiProperties props;
-    private final RestTemplate restTemplate = new RestTemplate();
+    private final RestTemplate restTemplate;
 
     private final UserBtDetailRepository userBtDetailRepository;
 
-    public AuthService(BtApiProperties props, UserBtDetailRepository userBtDetailRepository){
+    public AuthService(BtApiProperties props, RestTemplate restTemplate, UserBtDetailRepository userBtDetailRepository){
         this.props = props;
+        this.restTemplate = restTemplate;
         this.userBtDetailRepository = userBtDetailRepository;
     }
     public boolean refreshAccessToken(UserBtDetail userBtDetail) {

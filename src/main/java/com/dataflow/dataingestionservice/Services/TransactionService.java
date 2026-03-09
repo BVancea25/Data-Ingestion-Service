@@ -4,13 +4,16 @@ import com.dataflow.dataingestionservice.Config.ServiceProperties.ReportingServi
 import com.dataflow.dataingestionservice.DTO.FactTransactionDTO;
 import com.dataflow.dataingestionservice.DTO.TransactionDTO;
 import com.dataflow.dataingestionservice.DTO.TransactionFilter;
+import com.dataflow.dataingestionservice.Models.Category;
 import com.dataflow.dataingestionservice.Models.Currency;
 import com.dataflow.dataingestionservice.Models.Transaction;
+import com.dataflow.dataingestionservice.Repositories.CategoryRepository;
 import com.dataflow.dataingestionservice.Repositories.CurrencyRepository;
 import com.dataflow.dataingestionservice.Repositories.TransactionRepository;
 import com.dataflow.dataingestionservice.Specifications.TransactionSpecifications;
 import com.dataflow.dataingestionservice.Utils.Constants.SyncOperation;
 import com.dataflow.dataingestionservice.Utils.SecurityUtils;
+import org.springframework.boot.web.client.RestTemplateBuilder;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
@@ -22,6 +25,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.client.RestTemplate;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -30,14 +34,20 @@ public class TransactionService {
 
     private final TransactionRepository transactionRepository;
     private final CurrencyRepository currencyRepository;
-    private final RestTemplate restTemplate = new RestTemplate();
+    private final CategoryRepository categoryRepository;
+    private final RestTemplate restTemplate;
 
     private final ReportingServiceApiProperties reportingServiceApiProperties;
     public TransactionService(TransactionRepository transactionRepository,
-                              CurrencyRepository currencyRepository, ReportingServiceApiProperties reportingServiceApiProperties) {
+                              CurrencyRepository currencyRepository, CategoryRepository categoryRepository,
+                              ReportingServiceApiProperties reportingServiceApiProperties,
+                              RestTemplate restTemplate) {
         this.transactionRepository = transactionRepository;
         this.currencyRepository = currencyRepository;
+        this.categoryRepository = categoryRepository;
         this.reportingServiceApiProperties = reportingServiceApiProperties;
+        this.restTemplate = restTemplate;
+
     }
 
     @Transactional
@@ -57,11 +67,15 @@ public class TransactionService {
                     tx.setId(id);
                     tx.setUserId(userId);
                     tx.setAmount(dto.getAmount());
-                    tx.setCategory(dto.getCategory());
+                    //tx.setCategory(dto.getCategory());
                     tx.setTransactionDate(dto.getTransactionDate());
                     tx.setPaymentMode(dto.getPaymentMode());
                     tx.setDescription(dto.getDescription());
                     tx.setType(dto.getType());
+
+                    Optional<Category> category = categoryRepository
+                            .findById(dto.getCategoryId());
+                    category.ifPresent(tx::setCategory);
 
                     Currency currency = currencyRepository
                             .findByCodeContainingIgnoreCase(dto.getCurrencyCode());
@@ -86,10 +100,13 @@ public class TransactionService {
                 .orElseThrow(() -> new RuntimeException("Transaction not found"));
 
         existing.setAmount(transactionDTO.getAmount());
-        existing.setCategory(transactionDTO.getCategory());
         existing.setTransactionDate(transactionDTO.getTransactionDate());
         existing.setPaymentMode(transactionDTO.getPaymentMode());
         existing.setType(transactionDTO.getType());
+
+        Optional<Category> category = categoryRepository
+                .findById(transactionDTO.getCategoryId());
+        category.ifPresent(existing::setCategory);
 
         Currency currency = currencyRepository
                 .findByCodeContainingIgnoreCase(transactionDTO.getCurrencyCode());
@@ -121,11 +138,11 @@ public class TransactionService {
         sendToReportingService(dtos);
     }
 
-    private FactTransactionDTO mapToFactTransactionDTO(Transaction tx, SyncOperation operation) {
+    public FactTransactionDTO mapToFactTransactionDTO(Transaction tx, SyncOperation operation) {
         FactTransactionDTO dto = new FactTransactionDTO();
         dto.setId(tx.getId());
         dto.setAmount(tx.getAmount());
-        dto.setCategory(tx.getCategory());
+        dto.setCategoryId(tx.getCategory().getId());
         dto.setTransaction_date(tx.getTransactionDate());
         dto.setPaymentMode(tx.getPaymentMode());
         dto.setCurrencyCode(tx.getCurrency() != null ? tx.getCurrency().getCode() : null);
@@ -136,7 +153,7 @@ public class TransactionService {
         return dto;
     }
 
-    private void sendToReportingService(List<FactTransactionDTO> dtos) {
+    public void sendToReportingService(List<FactTransactionDTO> dtos) {
         System.out.println(reportingServiceApiProperties.getApiBase());
 
         HttpHeaders headers = new HttpHeaders();
@@ -165,13 +182,14 @@ public class TransactionService {
                 .map(tx -> new TransactionDTO(
                         tx.getId(),
                         tx.getTransactionDate(),
-                        tx.getCategory(),
+                        tx.getCategory() != null ? tx.getCategory().getId() : "",
                         tx.getDescription(),
                         tx.getAmount(),
                         tx.getCurrency() != null ? tx.getCurrency().getCode() : null, // extract just the code
                         tx.getPaymentMode(),
                         tx.getCreatedAt(),
-                        tx.getType()
+                        tx.getType(),
+                        tx.getCategory() != null ? tx.getCategory().getName() : ""
                 ))
                 .collect(Collectors.toList());
 

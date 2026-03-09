@@ -34,4 +34,3 @@ build/
 
 ./certs
 
-./src/main/resources/keystore.p12

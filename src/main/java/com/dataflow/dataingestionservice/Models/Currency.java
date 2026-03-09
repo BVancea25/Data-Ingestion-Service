@@ -9,7 +9,11 @@ import lombok.Setter;
 import java.util.UUID;
 
 
-@Table(name = "currencies")
+@Table(name = "currencies",
+        indexes = {
+            @Index(name = "idx_code", columnList = "code")
+        }
+)
 @Entity
 @NoArgsConstructor
 @AllArgsConstructor
