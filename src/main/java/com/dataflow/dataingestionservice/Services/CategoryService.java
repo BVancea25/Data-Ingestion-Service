@@ -75,10 +75,10 @@ public class CategoryService {
                 updated.getName()
         );
 
-        if (exists) {
-            throw new IllegalArgumentException(
-                    "Category already exists " + updated.getName()
-            );
+        if (!exists) {
+                throw new IllegalArgumentException(
+                        "Category doesn't exists, can't update " + updated.getName()
+                );
         }
 
         existing.setName(updated.getName());

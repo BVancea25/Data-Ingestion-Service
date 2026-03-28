@@ -24,4 +24,20 @@ public class FactTransactionDTO {
     private String userId;
     private LocalDate dateKey;
     private TransactionType type;
+
+    @Override
+    public String toString() {
+        return "FactTransactionDTO{" +
+                "id='" + id + '\'' +
+                ", amount=" + amount +
+                ", categoryId='" + categoryId + '\'' +
+                ", currencyCode='" + currencyCode + '\'' +
+                ", transaction_date=" + transaction_date +
+                ", paymentMode=" + paymentMode +
+                ", operation=" + operation +
+                ", userId='" + userId + '\'' +
+                ", dateKey=" + dateKey +
+                ", type=" + type +
+                '}';
+    }
 }

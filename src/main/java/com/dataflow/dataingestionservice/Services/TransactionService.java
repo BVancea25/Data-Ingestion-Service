@@ -4,6 +4,7 @@ import com.dataflow.dataingestionservice.Config.ServiceProperties.ReportingServi
 import com.dataflow.dataingestionservice.DTO.FactTransactionDTO;
 import com.dataflow.dataingestionservice.DTO.TransactionDTO;
 import com.dataflow.dataingestionservice.DTO.TransactionFilter;
+import com.dataflow.dataingestionservice.DTO.UpdateTransactionDTO;
 import com.dataflow.dataingestionservice.Models.Category;
 import com.dataflow.dataingestionservice.Models.Currency;
 import com.dataflow.dataingestionservice.Models.Transaction;
@@ -13,7 +14,6 @@ import com.dataflow.dataingestionservice.Repositories.TransactionRepository;
 import com.dataflow.dataingestionservice.Specifications.TransactionSpecifications;
 import com.dataflow.dataingestionservice.Utils.Constants.SyncOperation;
 import com.dataflow.dataingestionservice.Utils.SecurityUtils;
-import org.springframework.boot.web.client.RestTemplateBuilder;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
@@ -24,9 +24,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.client.RestTemplate;
 
-import java.util.List;
-import java.util.Optional;
-import java.util.UUID;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
@@ -118,6 +116,54 @@ public class TransactionService {
                 mapToFactTransactionDTO(existing, SyncOperation.UPDATE);
 
         sendToReportingService(List.of(dto));
+    }
+
+    @Transactional
+    public void updateTransactions(UpdateTransactionDTO transactionDTO) {
+
+        // Collect all IDs across all update groups
+        List<String> allIds = transactionDTO.ids();
+
+        // Fetch all transactions in one query
+        Map<String, Transaction> transactionMap = transactionRepository
+                .findAllById(allIds)
+                .stream()
+                .collect(Collectors.toMap(Transaction::getId, t -> t));
+
+        List<Transaction> toSave = new ArrayList<>();
+
+
+        for (String id : transactionDTO.ids()) {
+            Transaction existing = transactionMap.get(id);
+            if (existing == null) {
+                throw new RuntimeException("Transaction not found: " + id);
+            }
+
+            if (transactionDTO.type() != null) {
+                existing.setType(transactionDTO.type());
+            }
+            if (transactionDTO.paymentMethod() != null) {
+                existing.setPaymentMode(transactionDTO.paymentMethod());
+            }
+            if (transactionDTO.categoryId() != null) {
+                categoryRepository.findById(transactionDTO.categoryId())
+                        .ifPresent(existing::setCategory);
+            }
+            if(transactionDTO.currencyCode() != null){
+                existing.setCurrency(currencyRepository.findByCodeContainingIgnoreCase(transactionDTO.currencyCode()));
+
+            }
+
+            toSave.add(existing);
+        }
+
+        List<Transaction> saved = transactionRepository.saveAll(toSave);
+
+        List<FactTransactionDTO> factDTOs = saved.stream()
+                .map(t -> mapToFactTransactionDTO(t, SyncOperation.UPDATE))
+                .toList();
+        System.out.println(factDTOs);
+        sendToReportingService(factDTOs);
     }
 
     @Transactional

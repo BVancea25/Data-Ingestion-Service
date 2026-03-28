@@ -3,6 +3,7 @@ package com.dataflow.dataingestionservice.Controllers;
 import com.dataflow.dataingestionservice.Config.TransactionBatchConfig;
 import com.dataflow.dataingestionservice.DTO.TransactionDTO;
 import com.dataflow.dataingestionservice.DTO.TransactionFilter;
+import com.dataflow.dataingestionservice.DTO.UpdateTransactionDTO;
 import com.dataflow.dataingestionservice.Models.Transaction;
 import com.dataflow.dataingestionservice.Services.TransactionService;
 import com.dataflow.dataingestionservice.Utils.Constants.PaymentMethod;
@@ -186,6 +187,12 @@ public class TransactionController {
     @PutMapping("/income")
     public ResponseEntity<String> updateTransaction(@RequestBody TransactionDTO transactionDTO){
         transactionService.updateTransaction(transactionDTO);
+        return ResponseEntity.ok("Updated transaction");
+    }
+
+    @PutMapping("/incomes")
+    public ResponseEntity<String> updateTransactions(@RequestBody UpdateTransactionDTO updateTransactionDTO){
+        transactionService.updateTransactions(updateTransactionDTO);
         return ResponseEntity.ok("Updated transaction");
     }
 }
