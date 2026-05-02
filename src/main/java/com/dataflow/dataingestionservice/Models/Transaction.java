@@ -25,7 +25,12 @@ import java.time.LocalDateTime;
  * to denote that they have unique business meaning.
  * </p>
  */
-@Table(name = "transactions")
+@Table(name = "transactions", uniqueConstraints = {
+        @UniqueConstraint(
+                name = "uk_user_transaction_date",
+                columnNames = {"user_id", "transaction_date"}
+        )
+})
 @Entity
 @AllArgsConstructor
 @NoArgsConstructor
@@ -41,21 +46,13 @@ public class Transaction {
 
     /**
      * The unique identifier of the user associated with the transaction.
-     * <p>
-     * Marked as a natural ID and cannot be null.
-     * </p>
      */
-    @NaturalId
     @Column(name = "user_id", length = 36, nullable = false)
     private String userId;
 
     /**
      * The date and time when the transaction occurred.
-     * <p>
-     * Marked as a natural ID and cannot be null.
-     * </p>
      */
-    @NaturalId
     @Column(name = "transaction_date", nullable = false)
     private LocalDateTime transactionDate;
 

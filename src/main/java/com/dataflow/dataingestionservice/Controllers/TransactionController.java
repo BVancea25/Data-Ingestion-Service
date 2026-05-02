@@ -1,20 +1,27 @@
 package com.dataflow.dataingestionservice.Controllers;
 
 import com.dataflow.dataingestionservice.Config.TransactionBatchConfig;
+import com.dataflow.dataingestionservice.DTO.ImportErrorRowDTO;
+import com.dataflow.dataingestionservice.DTO.ImportResultDTO;
 import com.dataflow.dataingestionservice.DTO.TransactionDTO;
 import com.dataflow.dataingestionservice.DTO.TransactionFilter;
 import com.dataflow.dataingestionservice.DTO.UpdateTransactionDTO;
 import com.dataflow.dataingestionservice.Models.Transaction;
+import com.dataflow.dataingestionservice.Services.ImportErrorReportService;
 import com.dataflow.dataingestionservice.Services.TransactionService;
 import com.dataflow.dataingestionservice.Utils.Constants.PaymentMethod;
 import com.dataflow.dataingestionservice.Utils.Constants.TransactionType;
 import com.dataflow.dataingestionservice.Utils.SecurityUtils;
+import com.dataflow.dataingestionservice.Utils.TransactionImportSkipListener;
 import org.apache.commons.io.FilenameUtils;
+import org.springframework.batch.core.BatchStatus;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.batch.core.Job;
+import org.springframework.batch.core.JobExecution;
 import org.springframework.batch.core.JobParameters;
 import org.springframework.batch.core.JobParametersBuilder;
+import org.springframework.batch.core.StepExecution;
 import org.springframework.batch.core.launch.JobLauncher;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.data.domain.Page;
@@ -27,7 +34,10 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import java.io.File;
+import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.Base64;
 import java.util.List;
 import java.util.Objects;
 
@@ -52,6 +62,7 @@ public class TransactionController {
     private static final List<String> ALLOWED_EXTENSIONS = List.of("csv", "xlsx", "xls", "xml");
 
     private final TransactionService transactionService;
+    private final ImportErrorReportService importErrorReportService;
     private final JobLauncher jobLauncher;
     private final Job job;
 
@@ -62,10 +73,14 @@ public class TransactionController {
      * @param job                the {@link Job} that processes the transaction file
      * @param transactionService the service used to save transactions directly
      */
-    public TransactionController(JobLauncher jobLauncher, @Qualifier("transactionJob") Job job, TransactionService transactionService) {
+    public TransactionController(JobLauncher jobLauncher,
+                                 @Qualifier("transactionJob") Job job,
+                                 TransactionService transactionService,
+                                 ImportErrorReportService importErrorReportService) {
         this.jobLauncher = jobLauncher;
         this.job = job;
         this.transactionService = transactionService;
+        this.importErrorReportService = importErrorReportService;
     }
 
     /**
@@ -81,15 +96,15 @@ public class TransactionController {
      * @return a {@link ResponseEntity} with a success message or an error message describing the issue
      */
     @PostMapping("/income/upload")
-    public ResponseEntity<String> uploadFile(@RequestParam("file") MultipartFile file,
-                                             @RequestParam(value = "formatDateTime", required = false) String formatDateTime) {
+    public ResponseEntity<?> uploadFile(@RequestParam("file") MultipartFile file,
+                                        @RequestParam(value = "formatDateTime", required = false) String formatDateTime) {
         // Validate that the file is present and not empty
         if (file == null || file.isEmpty()) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("File is missing or empty.");
         }
 
         String originalFilename = file.getOriginalFilename();
-        if (originalFilename.trim().isEmpty()) {
+        if (originalFilename == null || originalFilename.trim().isEmpty()) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Invalid file name.");
         }
 
@@ -111,15 +126,83 @@ public class TransactionController {
                     .addString("formatDateTime", Objects.requireNonNullElse(formatDateTime, ""))
                     .toJobParameters();
 
-            // Launch the Spring Batch job
-            jobLauncher.run(job, jobParameters);
+            JobExecution jobExecution = jobLauncher.run(job, jobParameters);
 
-            return ResponseEntity.ok("File uploaded and job started.");
+            if (jobExecution.getStatus() == BatchStatus.FAILED) {
+                String failureMessage = jobExecution.getAllFailureExceptions()
+                        .stream()
+                        .map(Throwable::getMessage)
+                        .filter(Objects::nonNull)
+                        .findFirst()
+                        .orElse("Batch job failed.");
+                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                        .body("File processing failed: " + failureMessage);
+            }
+
+            int importedRows = Math.toIntExact(jobExecution.getStepExecutions()
+                    .stream()
+                    .mapToLong(StepExecution::getWriteCount)
+                    .sum());
+
+            List<ImportErrorRowDTO> errors = getImportErrors(jobExecution);
+            int skippedRows = Math.toIntExact(jobExecution.getStepExecutions()
+                    .stream()
+                    .mapToLong(step -> step.getReadSkipCount() + step.getProcessSkipCount() + step.getWriteSkipCount())
+                    .sum());
+
+            if (errors.isEmpty() && skippedRows > 0) {
+                errors.add(new ImportErrorRowDTO(
+                        null,
+                        "IMPORT",
+                        "Some rows were skipped during import. Check the service logs for detailed row-level errors.",
+                        ""
+                ));
+            }
+
+            int failedRows = skippedRows > 0 ? skippedRows : errors.size();
+
+            String errorReportFileName = null;
+            String errorReportBase64 = null;
+
+            if (failedRows > 0) {
+                String report = importErrorReportService.toCsv(errors);
+                errorReportFileName = "transaction-import-errors.csv";
+                errorReportBase64 = Base64.getEncoder()
+                        .encodeToString(report.getBytes(StandardCharsets.UTF_8));
+            }
+
+            String message = failedRows == 0
+                    ? "File imported successfully."
+                    : "File imported with skipped rows.";
+
+            return ResponseEntity.ok(new ImportResultDTO(
+                    message,
+                    importedRows,
+                    failedRows,
+                    errorReportFileName,
+                    errorReportBase64
+            ));
         } catch (Exception e) {
             logger.error("Error processing file upload", e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body("File processing failed: " + e.getMessage());
         }
+    }
+
+    @SuppressWarnings("unchecked")
+    private List<ImportErrorRowDTO> getImportErrors(JobExecution jobExecution) {
+        List<ImportErrorRowDTO> errors = new ArrayList<>();
+
+        for (StepExecution stepExecution : jobExecution.getStepExecutions()) {
+            Object value = stepExecution.getExecutionContext()
+                    .get(TransactionImportSkipListener.IMPORT_ERRORS_CONTEXT_KEY);
+
+            if (value instanceof List<?>) {
+                errors.addAll((List<ImportErrorRowDTO>) value);
+            }
+        }
+
+        return errors;
     }
 
     /**

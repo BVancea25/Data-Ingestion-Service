@@ -5,12 +5,16 @@ import com.dataflow.dataingestionservice.Models.Transaction;
 import com.dataflow.dataingestionservice.Repositories.CategoryRepository;
 import com.dataflow.dataingestionservice.Repositories.CurrencyRepository;
 import com.dataflow.dataingestionservice.Utils.ColumnFormatter;
+import com.dataflow.dataingestionservice.Utils.Constants.PaymentMethod;
 import com.dataflow.dataingestionservice.Utils.Constants.TransactionType;
 import com.dataflow.dataingestionservice.Utils.LoggingItemWriteListener;
 import com.dataflow.dataingestionservice.Utils.ReportingSyncItemWriteListener;
+import com.dataflow.dataingestionservice.Utils.TransactionImportSkipListener;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.batch.core.*;
+import org.springframework.batch.core.SkipListener;
+import org.springframework.batch.core.StepExecutionListener;
 import org.springframework.batch.core.configuration.annotation.EnableBatchProcessing;
 import org.springframework.batch.core.configuration.annotation.JobScope;
 import org.springframework.batch.core.configuration.annotation.StepScope;
@@ -204,6 +208,12 @@ public class TransactionBatchConfig {
                 setValue(ColumnFormatter.convertToLocalDateTime(text, formatDateTime));
             }
         });
+        customEditors.put(PaymentMethod.class, new PropertyEditorSupport() {
+            @Override
+            public void setAsText(String text) {
+                setValue(PaymentMethod.valueOf(text.toUpperCase()));
+            }
+        });
 
         mapper.setCustomEditors(customEditors);
 
@@ -252,10 +262,10 @@ public class TransactionBatchConfig {
         JdbcBatchItemWriter<Transaction> writer = new JdbcBatchItemWriter<>();
         writer.setDataSource(dataSource);
         writer.setSql(
-                "INSERT INTO transactions (id, user_id, transaction_date, category, description, amount, currency_id, payment_mode, created_at, type) " +
-                        "VALUES (:id,:userId, :transactionDate, :category, :description, :amount, :currencyId, :paymentMode, :createdAt, :type) " +
+                "INSERT INTO transactions (id, user_id, transaction_date, category_id, description, amount, currency_id, payment_mode, created_at, type) " +
+                        "VALUES (:id,:userId, :transactionDate, :category_id, :description, :amount, :currencyId, :paymentMode, :createdAt, :type) " +
                         "ON DUPLICATE KEY UPDATE " +
-                        "category = VALUES(category), " +
+                        "category_id = VALUES(category_id), " +
                         "description = VALUES(description), " +
                         "amount = VALUES(amount), " +
                         "currency_id = VALUES(currency_id), " +
@@ -270,13 +280,13 @@ public class TransactionBatchConfig {
                 paramSource.addValue("id", item.getId());
                 paramSource.addValue("userId", item.getUserId());
                 paramSource.addValue("transactionDate", item.getTransactionDate());
-                paramSource.addValue("category", item.getCategory());
+                paramSource.addValue("category_id", item.getCategory() != null ? item.getCategory().getId() : null);
                 paramSource.addValue("description", item.getDescription());
                 paramSource.addValue("amount", item.getAmount());
                 paramSource.addValue("currencyId", item.getCurrency().getIdAsString());
-                paramSource.addValue("paymentMode", item.getPaymentMode());
+                paramSource.addValue("paymentMode", item.getPaymentMode() != null ? item.getPaymentMode().name() : null);
                 paramSource.addValue("createdAt", item.getCreatedAt());
-                paramSource.addValue("type", item.getAmount().compareTo(BigDecimal.ZERO) > 0 ? TransactionType.INCOME : TransactionType.EXPENSE);
+                paramSource.addValue("type", item.getType() != null ? item.getType().name() : null);
                 return paramSource;
             }
         });
@@ -304,13 +314,19 @@ public class TransactionBatchConfig {
                            SynchronizedItemStreamReader<Transaction> itemReader,
                            ItemProcessor<Transaction, Transaction> transactionProcessor,
                            JdbcBatchItemWriter<Transaction> itemWriter,
-                           ReportingSyncItemWriteListener syncListener) {
+                           ReportingSyncItemWriteListener syncListener,
+                           TransactionImportSkipListener importSkipListener) {
 
         return new StepBuilder("insertStep", jobRepository)
                 .<Transaction, Transaction>chunk(50, transactionManager)
                 .reader(itemReader)
                 .processor(transactionProcessor)
                 .writer(itemWriter)
+                .faultTolerant()
+                .skip(Exception.class)
+                .skipLimit(1000)
+                .listener((SkipListener<? super Transaction, ? super Transaction>) importSkipListener)
+                .listener((StepExecutionListener) importSkipListener)
                 .listener(syncListener)
                 .listener(new LoggingItemWriteListener<>())
                 .build();

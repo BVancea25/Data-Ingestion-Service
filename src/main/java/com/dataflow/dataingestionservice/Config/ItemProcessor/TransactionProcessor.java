@@ -5,10 +5,12 @@ import com.dataflow.dataingestionservice.Models.Currency;
 import com.dataflow.dataingestionservice.Models.Transaction;
 import com.dataflow.dataingestionservice.Repositories.CategoryRepository;
 import com.dataflow.dataingestionservice.Repositories.CurrencyRepository;
+import com.dataflow.dataingestionservice.Utils.Constants.TransactionType;
 import com.dataflow.dataingestionservice.Utils.SecurityUtils;
 import jakarta.annotation.PostConstruct;
 import org.springframework.batch.item.ItemProcessor;
 
+import java.math.BigDecimal;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
@@ -46,7 +48,6 @@ public class TransactionProcessor implements ItemProcessor<Transaction, Transact
     public Transaction process(Transaction item) throws Exception {
         String currencyCode = item.getCurrencyCode();
         String categoryName = item.getCategoryName();
-
         Currency currency;
         currency=currencyCache.get(currencyCode);
 
@@ -59,11 +60,17 @@ public class TransactionProcessor implements ItemProcessor<Transaction, Transact
 
         Category category = null;
 
-        if(categoryName != null){
+        if(categoryName != null && !categoryName.isEmpty()){
             category = categoryRepository.findByNameIgnoreCase(categoryName);
         }
 
+        if(item.getAmount().compareTo(BigDecimal.ZERO) > 0){
+            item.setType(TransactionType.INCOME);
+        }else{
+            item.setType(TransactionType.EXPENSE);
+        }
 
+        item.setAmount(item.getAmount().abs());
         item.setCategory(category);
         item.setCurrency(currency);
         item.setId(UUID.randomUUID().toString());

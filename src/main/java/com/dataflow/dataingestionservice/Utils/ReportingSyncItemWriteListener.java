@@ -38,7 +38,7 @@ public class ReportingSyncItemWriteListener implements ItemWriteListener<Transac
                     FactTransactionDTO dto = new FactTransactionDTO();
                     dto.setId(tx.getId());
                     dto.setAmount(tx.getAmount());
-                    dto.setCategoryId(tx.getCategory().getId());
+                    dto.setCategoryId(tx.getCategory() != null ? tx.getCategory().getId() : null);
                     dto.setTransaction_date(tx.getTransactionDate());
                     dto.setPaymentMode(tx.getPaymentMode());
                     dto.setCurrencyCode(tx.getCurrency().getCode());
