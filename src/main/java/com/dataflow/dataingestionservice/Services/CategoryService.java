@@ -70,15 +70,16 @@ public class CategoryService {
             throw new SecurityException("Not allowed to update this category");
         }
 
-        boolean exists = categoryRepository.existsByUserIdAndName(
+        boolean nameConflict = categoryRepository.existsByUserIdAndNameAndIdNot(
                 userId,
-                updated.getName()
+                updated.getName(),
+                categoryId  // exclude the current category
         );
 
-        if (!exists) {
-                throw new IllegalArgumentException(
-                        "Category doesn't exists, can't update " + updated.getName()
-                );
+        if (nameConflict) {
+            throw new IllegalArgumentException(
+                    "A category named '" + updated.getName() + "' already exists"
+            );
         }
 
         existing.setName(updated.getName());

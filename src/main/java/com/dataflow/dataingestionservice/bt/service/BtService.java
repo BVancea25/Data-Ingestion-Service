@@ -79,14 +79,14 @@ public class BtService {
         return redirectUrl;
     }
     public UserBtDetail createConsent(){
-        String url = props.getApiBase() + "/bt-psd2-aisp/v2/consents";
+        String url = props.getApiBase() + "bt-psd2-aisp/v2/consents";
 
-        LocalDate validUntill = LocalDate.now().plusDays(150);
+        LocalDate validUntil = LocalDate.now().plusDays(80);
 
         Map<String, Object> body = new HashMap<>();
         body.put("access",Map.of("availableAccounts","allAccounts"));
         body.put("recurringIndicator", true);
-        body.put("validUntil", validUntill.toString());
+        body.put("validUntil", validUntil.toString());
         body.put("combinedServiceIndicator", false);
         body.put("frequencyPerDay", 4);
 
@@ -109,7 +109,7 @@ public class BtService {
             UserBtDetail userBtDetail = new UserBtDetail();
             userBtDetail.setConsentId(consentId);
             userBtDetail.setUserId(SecurityUtils.getCurrentUserUuid());
-            userBtDetail.setValidUntill(validUntill);
+            userBtDetail.setValidUntill(validUntil);
             userBtDetail.setConsentStatus(consentStatus);
 
             return userBtDetail;
@@ -230,6 +230,9 @@ public class BtService {
 
                             bankAccountRepository.save(bankAccount);
                             bankAccountExists = bankAccount;
+                        }else{
+                            bankAccountExists.setUserBtDetail(userBtDetail);
+                            bankAccountRepository.save(bankAccountExists);
                         }
 
                         accountSyncService.syncAccount(bankAccountExists, userBtDetail, null);

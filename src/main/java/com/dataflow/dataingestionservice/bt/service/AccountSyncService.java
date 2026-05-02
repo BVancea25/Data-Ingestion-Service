@@ -68,14 +68,12 @@ public class AccountSyncService {
      * - page through the transactions endpoint
      * - refresh token on 401 and retry once
      * - dedupe by bt_transaction_id
-     * - save positive amounts as Transaction and (optionally) outgoing as Expense depending on your rule
      *
      * @param account the BankAccount entity (must include account id used by the BT API and userId)
      * @param userBtDetail token info for this user/consent
      * @param initialFromDate if null -> will default to now().minusDays(90) for initial full sync
      */
     @Transactional
-    @Async
     public void syncAccount(BankAccount account, UserBtDetail userBtDetail, LocalDate initialFromDate){
         final int limit = 100;
         int page = 1;
@@ -264,6 +262,7 @@ public class AccountSyncService {
              t.setPaymentMode(PaymentMethod.CARD);
              t.setCreatedAt(LocalDateTime.now());
              t.setType(amount.compareTo(BigDecimal.ZERO) > 0 ? TransactionType.INCOME : TransactionType.EXPENSE);
+             t.setCategory(null);
              txsToSave.add(t);
 
              txsToSync.add(transactionService.mapToFactTransactionDTO(t, SyncOperation.CREATE));
