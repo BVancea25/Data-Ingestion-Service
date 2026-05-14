@@ -36,42 +36,35 @@ public class CurrencyController {
         this.currencyService=currencyService;
     }
     @PostMapping("/currency/upload")
-    public ResponseEntity<String> importCurrencies(@RequestParam("file") MultipartFile file){
+    public ResponseEntity<String> importCurrencies(@RequestParam("file") MultipartFile file) throws Exception {
 
         if (file == null || file.isEmpty()) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("File is missing or empty.");
+            throw new IllegalArgumentException("File is missing or empty.");
         }
 
         String originalFilename = file.getOriginalFilename();
-        if (originalFilename.trim().isEmpty()) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Invalid file name.");
+        if (originalFilename == null || originalFilename.trim().isEmpty()) {
+            throw new IllegalArgumentException("Invalid file name.");
         }
 
         // Validate file extension
         String extension = FilenameUtils.getExtension(originalFilename).toLowerCase();
         if (!ALLOWED_EXTENSIONS.contains(extension)) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body("Unsupported file extension. Allowed extensions: csv");
+            throw new IllegalArgumentException("Unsupported file extension.");
         }
 
-        try {
-            // Create a temporary file with the proper extension
-            File tempFile = File.createTempFile("upload-", "." + extension);
-            file.transferTo(tempFile);
+        // Create a temporary file with the proper extension
+        File tempFile = File.createTempFile("upload-", "." + extension);
+        file.transferTo(tempFile);
 
-            // Build job parameters
-            JobParameters jobParameters = new JobParametersBuilder()
-                    .addString("filePath", tempFile.getAbsolutePath())
-                    .toJobParameters();
+        // Build job parameters
+        JobParameters jobParameters = new JobParametersBuilder()
+                .addString("filePath", tempFile.getAbsolutePath())
+                .toJobParameters();
 
-            jobLauncher.run(job, jobParameters);
+        jobLauncher.run(job, jobParameters);
 
-            return ResponseEntity.ok("File uploaded and job started.");
-        } catch (Exception e) {
-            logger.error("Error processing file upload", e);
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body("File processing failed: " + e.getMessage());
-        }
+        return ResponseEntity.ok("File uploaded and job started.");
     }
 
     @GetMapping("/currency")

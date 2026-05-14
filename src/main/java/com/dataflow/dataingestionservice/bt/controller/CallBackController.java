@@ -1,6 +1,8 @@
 package com.dataflow.dataingestionservice.bt.controller;
 
 import com.dataflow.dataingestionservice.bt.service.BtService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -10,6 +12,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 public class CallBackController {
+    private static final Logger logger = LoggerFactory.getLogger(CallBackController.class);
     private final BtService btService;
 
     public CallBackController(BtService btService){
@@ -33,8 +36,9 @@ public class CallBackController {
 
             //return ResponseEntity.ok("Consent successful. You can close this page.");
         } catch (Exception e) {
+            logger.error("Error processing BT consent callback", e);
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body("Error processing consent: " + e.getMessage());
+                    .body("Unable to complete bank consent. Please try connecting again.");
         }
     }
 }

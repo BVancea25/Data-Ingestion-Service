@@ -3,6 +3,10 @@ package com.dataflow.dataingestionservice.Services;
 import com.dataflow.dataingestionservice.Config.ServiceProperties.ReportingServiceApiProperties;
 import com.dataflow.dataingestionservice.DTO.CategoryDimensionDTO;
 import com.dataflow.dataingestionservice.DTO.FactTransactionDTO;
+import com.dataflow.dataingestionservice.Errors.BusinessConflictException;
+import com.dataflow.dataingestionservice.Errors.ForbiddenOperationException;
+import com.dataflow.dataingestionservice.Errors.ResourceNotFoundException;
+import com.dataflow.dataingestionservice.Errors.UpstreamServiceException;
 import com.dataflow.dataingestionservice.Models.Category;
 import com.dataflow.dataingestionservice.Repositories.CategoryRepository;
 import com.dataflow.dataingestionservice.Utils.Constants.SyncOperation;
@@ -46,9 +50,7 @@ public class CategoryService {
         );
 
         if (exists) {
-            throw new IllegalArgumentException(
-                    "Category already exists " + category.getName()
-            );
+            throw new BusinessConflictException("Category already exists.");
         }
 
         Category saved =  categoryRepository.save(category);
@@ -64,10 +66,10 @@ public class CategoryService {
         String userId = SecurityUtils.getCurrentUserUuid();
 
         Category existing = categoryRepository.findById(categoryId)
-                .orElseThrow(() -> new RuntimeException("Category not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Category not found"));
 
         if (!existing.getUserId().equals(userId)) {
-            throw new SecurityException("Not allowed to update this category");
+            throw new ForbiddenOperationException("Not allowed to update this category");
         }
 
         boolean nameConflict = categoryRepository.existsByUserIdAndNameAndIdNot(
@@ -77,9 +79,7 @@ public class CategoryService {
         );
 
         if (nameConflict) {
-            throw new IllegalArgumentException(
-                    "A category named '" + updated.getName() + "' already exists"
-            );
+            throw new BusinessConflictException("Category already exists.");
         }
 
         existing.setName(updated.getName());
@@ -109,10 +109,10 @@ public class CategoryService {
         String userId = SecurityUtils.getCurrentUserUuid();
 
         Category category = categoryRepository.findById(categoryId)
-                .orElseThrow(() -> new RuntimeException("Category not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Category not found"));
 
         if (!category.getUserId().equals(userId)) {
-            throw new SecurityException("Not allowed to access this category");
+            throw new ForbiddenOperationException("Not allowed to access this category");
         }
 
         return category;
@@ -145,9 +145,7 @@ public class CategoryService {
         );
 
         if (!response.getStatusCode().is2xxSuccessful()) {
-            throw new RuntimeException(
-                    "Failed to sync with Reporting Service: " + response.getBody()
-            );
+            throw new UpstreamServiceException("Failed to sync with Reporting Service.");
         }
     }
 }
